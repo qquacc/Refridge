@@ -8,7 +8,7 @@ export function groceryCosts(state, rows = state.groceries) {
   const lines = rows.map((g) => {
     const p = foodPrice(state,g.name), quantityKnown = Number.isFinite(g.grams) && g.grams > 0;
     const packages = p ? quantityKnown ? Math.ceil(g.grams / p.grams) : 1 : null;
-    return { id:g.id, name:g.name, known:!!p, packages, assumedPackage:!quantityKnown, estimated:!!p?.estimated, source:p?.source, region:p?.region, period:p?.period, cad:p ? packages*p.cad : null };
+    return { id:g.id, name:g.name, known:!!p, packages, assumedPackage:!quantityKnown, estimated:!!p?.estimated, comparable:!!p?.comparable, matchNote:p?.matchNote, source:p?.source, region:p?.region, period:p?.period, cad:p ? packages*p.cad : null };
   });
   return { lines, total:lines.reduce((sum,l)=>sum+(l.cad??0),0), unknown:lines.filter((l)=>!l.known).length, complete:lines.every((l)=>l.known) };
 }

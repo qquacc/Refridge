@@ -8,3 +8,10 @@ test('regional prices require a confirmed Canadian location, honor manual overri
  assert.equal(regionalFoodPrice(state,'Pepsi can'),null);assert.equal(regionalFoodPrice(state,'Brown rice'),null);assert(regionalFoodPrice(state,'dry brown rice'));assert.equal(regionalFoodPrice({...state,profile:{city:'Calgary'}},'Apple'),null);
  assert.equal(regionalFoodPrice({...state,profile:{cityLocation:{name:'Iqaluit',province:'Nunavut',countryCode:'CA'}}},'Apple'),null);
 });
+test('regional name variants and comparable products are priced with explicit uncertainty',()=>{
+ const s={profile:{cityLocation:{name:'Calgary',province:'Alberta',countryCode:'CA'}},foodPrices:{}};
+ assert.equal(foodPrice(s,'Apples').cad,foodPrice(s,'Apple').cad);
+ const yogurt=foodPrice(s,'Greek yogurt');assert(yogurt.cad>0);assert.equal(yogurt.comparable,true);assert.match(yogurt.matchNote,/may cost more/);
+ const tomato=foodPrice(s,'Cherry tomatoes');assert(tomato.cad>0);assert.equal(tomato.region,'Alberta');
+ s.foodPrices['greek yogurt']={cad:6,grams:750};assert.equal(foodPrice(s,'Greek yogurt').cad,6);assert.equal(foodPrice(s,'Greek yogurt').estimated,false);
+});

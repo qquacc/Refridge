@@ -493,7 +493,6 @@ function CameraApp() {
                   <input
                     type="checkbox"
                     checked={motion}
-                    disabled={!running}
                     onChange={(e) => setMotion(e.target.checked)}
                     aria-label="Enable motion capture"
                   />
