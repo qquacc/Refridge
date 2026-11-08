@@ -1,3 +1,4 @@
+import WelcomeSplash from "./components/WelcomeSplash.jsx";
 import FriendChat from "./components/FriendChat.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import WellbeingPage from "./pages/WellbeingPage.jsx";
@@ -36,7 +37,8 @@ const nav = [
   ["more", "More"],
 ];
 function KitchensPage(props) {
-  const [section, setSection] = useState("connections");
+  const [section, setSection] = useState(props.chatTarget ? "messages" : "connections");
+  useEffect(() => { if (props.chatTarget) setSection("messages"); }, [props.chatTarget]);
   return <div className="feature-page"><div className="tabs" aria-label="Kitchens sections">
     <button className={section === "connections" ? "active" : ""} onClick={() => setSection("connections")}>Connections & trades</button>
     <button className={section === "meals" ? "active" : ""} onClick={() => setSection("meals")}>Shared meal plans</button>
@@ -118,6 +120,9 @@ export default function App({ account, onLogout }) {
   const [state, rawSet] = useState(() => read(account)),
     [page, setPage] = useState("home"),
     [modal, setModal] = useState(null),
+    [welcome, setWelcome] = useState(false),
+    [incomingMessage, setIncomingMessage] = useState(null),
+    [chatTarget, setChatTarget] = useState(null),
     [toast, setToast] = useState(""),
     [offline, setOffline] = useState(!navigator.onLine),
     [signingOut, setSigningOut] = useState(false);
@@ -130,8 +135,10 @@ export default function App({ account, onLogout }) {
       ),
     [],
   );
+  const finishWelcome = useCallback(() => setWelcome(false), []);
+  const beginWelcome = useCallback(() => { setPage("home"); setModal(null); setWelcome(true); }, []);
   const syncError = useAutomaticInventory(state, setState);
-  const socialError = useFriendFridges(state, setState);
+  const socialError = useFriendFridges(state, setState, setIncomingMessage);
   const cloud = useAccountSync(account, state);
   async function signOut() {
     setSigningOut(true);
@@ -158,6 +165,7 @@ export default function App({ account, onLogout }) {
   }, [toast]);
   const notify = setToast;
   const navigate = (p) => {
+    setChatTarget(null);
     setPage(p);
     window.scrollTo(0, 0);
   };
@@ -182,7 +190,7 @@ export default function App({ account, onLogout }) {
   const food = getFridgeItems(state),
     soon = food.filter((i) => i.expires && daysLeft(i.expires) <= 2),
     remaining = state.groceries.length;
-  const common = { state, setState, navigate, setModal, notify, addGroceries, activeProfileTab: page === "goals" ? "goals" : "profile" };
+  const common = { state, setState, navigate, setModal, notify, addGroceries, chatTarget, activeProfileTab: page === "goals" ? "goals" : "profile" };
   const pages = {
     home: OverviewPage,
     wellbeing: WellbeingPage,
@@ -205,7 +213,8 @@ export default function App({ account, onLogout }) {
     (state.profile.name || "Y")[0]
   );
   if (state.onboarding?.completed === false || (!state.onboarding && !state.profile.complete))
-    return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error || toast} onLogout={signOut} signingOut={signingOut} />;
+    return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error || toast} onLogout={signOut} signingOut={signingOut} onComplete={beginWelcome} />;
+  if (welcome) return <WelcomeSplash onDone={finishWelcome} />;
   return (
     <div className={"app-shell" + (page === "home" ? " home-screen" : "")}>
       <a className="skip-link" href="#main">
@@ -375,6 +384,12 @@ export default function App({ account, onLogout }) {
           </button>
         ))}
       </nav>
+      {incomingMessage && <div className="incoming-message-toast" role="status">
+        <button className="incoming-message-open" onClick={() => {
+          navigate("kitchens"); setChatTarget({ friendId: incomingMessage.friendId, requestId: incomingMessage.id }); setIncomingMessage(null); setModal(null);
+        }}><Icon name="bell" size={19} /><span><strong>{incomingMessage.friendName}</strong><small>New message · Open conversation</small><span className="incoming-message-preview">{incomingMessage.text}</span></span></button>
+        <button className="incoming-message-dismiss" aria-label="Dismiss message notification" onClick={() => setIncomingMessage(null)}><Icon name="close" size={16} /></button>
+      </div>}
       {toast && (
         <div className="toast" role="status">
           <Icon name="check" size={17} />

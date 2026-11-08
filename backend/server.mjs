@@ -1,3 +1,4 @@
+import { analyzeMealPhoto } from "./meal-vision.mjs";
 import { signedInAccount, createAccountRoutes } from "./accounts.mjs";
 import { confirmedPredictedFood, enrichFoodPredictions } from "./predictions.mjs";
 import { FileImages } from "./images.mjs";
@@ -251,6 +252,7 @@ export function createApp({
   publicDir = path.join(ROOT, "dist"),
   allowedOrigins = localDevelopmentOrigins,
   trustProxy = false,
+  mealAnalyzer = analyzeMealPhoto,
   visionAnalyzer,
   visionKeyConfigured,
   now = () => Date.now(),
@@ -347,6 +349,17 @@ export function createApp({
         res.writeHead(status, { "Content-Type": "application/json" });
         res.end(JSON.stringify(value));
       };
+      if (p === "/api/meals/recognize" && method === "POST") {
+        const state = await store.read();
+        const account = signedInAccount(state, req, now());
+        demand(account, 401, "Log in to recognize a meal photo.");
+        rate(req, "meal-photo:" + account.id, 12);
+        const input = await jsonBody(req), encoded = input.jpegBase64;
+        demand(typeof encoded === "string" && encoded.length <= 1400000 && encoded.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(encoded), 400, "Choose a valid meal photo.");
+        const bytes = Buffer.from(encoded, "base64");
+        demand(bytes.length >= 4 && bytes.length <= MAX_IMAGE && bytes[0] === 255 && bytes[1] === 216 && bytes.at(-2) === 255 && bytes.at(-1) === 217, 400, "Choose a valid JPEG meal photo.");
+        try { return send(await mealAnalyzer(bytes)); } catch (e) { throw new ApiError(503, e.message); }
+      }
       if (await accountRoute(req, res, p, send)) return;
       if (p.startsWith("/api/social")) {
         if (p === "/api/social" && method === "GET") {

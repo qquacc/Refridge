@@ -11,7 +11,7 @@ export function saveWeight(state, input, today) {
 }
 export function weightReminder(state, today) {
   const latest = [...(state.weightTracking?.entries || [])].filter((e) => e.date <= today).sort((a, b) => a.date.localeCompare(b.date)).at(-1);
-  return { due: state.weightTracking?.enabled !== false && (!state.weightTracking?.snoozedUntil || state.weightTracking.snoozedUntil <= today) && (!latest || shiftDate(latest.date, 3) <= today), streak: streak(state.logs, today), latest };
+  return { due: state.weightTracking?.enabled !== false && (!state.weightTracking?.dismissedUntil || state.weightTracking.dismissedUntil <= today) && (!state.weightTracking?.snoozedUntil || state.weightTracking.snoozedUntil <= today) && (!latest || shiftDate(latest.date, 3) <= today), streak: streak(state.logs, today), latest };
 }
 const mean = (values) => values.length ? values.reduce((s, n) => s + n, 0) / values.length : null;
 export function correlation(pairs, minimum = 8) {

@@ -3,7 +3,7 @@ import { allergens, dietaryChoices } from "../../../../packages/shared/dietary.m
 import { ageAt } from "../../../../packages/shared/nutrition.mjs";
 import { today } from "../data/food.mjs";
 import { finishOnboardingStep, onboardingQuestions, currentOnboardingStep } from "../lib/onboarding.mjs";
-export default function Onboarding({ state, setState, saveStatus, error: cloudError, onLogout, signingOut }) {
+export default function Onboarding({ state, setState, saveStatus, error: cloudError, onLogout, signingOut, onComplete }) {
   const step = state.profile.accountFor ? currentOnboardingStep(state) : -1;
   const [draft, setDraft] = useState({ ...state.profile, activity: ({ Moderate: "Active", Light: "Low active", Low: "Inactive", High: "Very active" })[state.profile.activity] || state.profile.activity }), [error, setError] = useState("");
   const family = draft.accountFor === "family";
@@ -12,7 +12,7 @@ export default function Onboarding({ state, setState, saveStatus, error: cloudEr
   useEffect(() => { heading.current?.focus(); setError(""); }, [step]);
   function toggle(key, value) { setDraft((d) => ({ ...d, [key]: (d[key] || []).includes(value) ? d[key].filter((v) => v !== value) : [...(d[key] || []), value] })); }
   function next(skip = false) {
-    try { const updated = finishOnboardingStep(state, draft, step, today(), skip); setState(updated); setDraft(updated.profile); }
+    try { const updated = finishOnboardingStep(state, draft, step, today(), skip); setState(updated); setDraft(updated.profile); if (updated.onboarding.completed) onComplete?.(); }
     catch (e) { setError(e.message); }
   }
   return <main className="onboarding-shell">

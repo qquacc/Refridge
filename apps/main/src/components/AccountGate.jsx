@@ -3,7 +3,7 @@ import { cameraApi, readSaved, saveDevice } from "../../../../packages/shared/ca
 import App from "../App.jsx";
 import "../styles/accounts.css";
 const OWNER = "fridgeful:camera-owner:v1";
-export default function AccountGate() {
+export default function AccountGate({ ready = true }) {
   const [session, setSession] = useState(null), [loading, setLoading] = useState(true);
   const [mode, setMode] = useState("signup"), [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [importLocal, setImportLocal] = useState(false);
@@ -43,6 +43,7 @@ export default function AccountGate() {
     saveDevice(OWNER, null);
     setSession(null); setMode("login"); setError("");
   }
+  if (!ready) return null;
   if (session) return <App key={session.id} account={session} onLogout={logout} />;
   return <main className="account-landing">
     <header className="account-header"><a href="/" className="account-brand"><img src="/fridge-mark.svg" alt="" width="42" height="46" />Refridge<span>.</span></a><span>A little less waste. A lot more good food.</span></header>

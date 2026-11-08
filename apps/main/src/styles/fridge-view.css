@@ -64,8 +64,11 @@
 .place-drawer .rf-row { padding: 8px 110px 4px 14px; align-items: flex-end; }
 .place-drawer .rf-zone-tag { top: auto; bottom: 7px; left: auto; right: 10px; background: rgba(255, 255, 255, .7); }
 .rf-drawer-front { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 4px; border: 2px solid rgba(255, 255, 255, .75);
-  /* Equal diagonal bands straddle the drawer's central vertical axis. */
-  background: linear-gradient(115deg, rgba(255, 255, 255, .34) 0 39%, rgba(255, 255, 255, .21) 39% 43%, rgba(255, 255, 255, .34) 43% 57%, rgba(255, 255, 255, .21) 57% 61%, rgba(255, 255, 255, .34) 61%); }
+  /* Each drawer shows its slice of one continuous diagonal reflection.
+     The extra 10px includes the 6px drawer gap and their two 2px borders. */
+  background: linear-gradient(115deg, rgba(255, 255, 255, .34) 0 28%, rgba(255, 255, 255, .21) 28% 32%, rgba(255, 255, 255, .34) 32% 72%, rgba(255, 255, 255, .21) 72% 76%, rgba(255, 255, 255, .34) 76%);
+  background-size: 100% calc(200% + 10px); background-position: center top; background-repeat: no-repeat; }
+.place-drawer + .place-drawer .rf-drawer-front { background-position: center bottom; }
 .rf-drawer-front i { position: absolute; top: -2px; left: 50%; width: 34px; height: 8px; transform: translateX(-50%); background: #fff; border-radius: 0 0 6px 6px; }
 
 /* Open door with white trays */
@@ -205,3 +208,6 @@
 
 /* Center empty drawer labels independently of the food row’s label clearance. */
 .place-drawer .rf-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; text-align: center; }
+
+/* Empty door trays center their label in the usable area above the white lip. */
+.place-tray .rf-empty { position: absolute; left: 50%; top: calc((100% - clamp(15px, 2.6vh, 24px)) / 2); transform: translate(-50%, -50%); margin: 0; color: #111; text-align: center; }

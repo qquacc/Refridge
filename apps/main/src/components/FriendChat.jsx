@@ -2,10 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { Panel } from "./FeatureUI.jsx";
 import { socialAction } from "../hooks/useFriendFridges.jsx";
 const prompts = { meal: 'Meal collab · What should we cook together?', competition: 'Friendly competition · Ready for a food-saving challenge?' };
-export default function FriendChat({ state, setState, navigate, onMealCollab }) {
+export default function FriendChat({ state, setState, navigate, onMealCollab, chatTarget }) {
   const demo = !!state.sampleAccount;
   const friends = (demo || state.socialSettings?.enabled ? state.members : []).filter((m) => demo ? m.demo && ['allen', 'ava'].includes(m.id) : m.remote);
   const [selected, setSelected] = useState(''), [draft, setDraft] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  useEffect(() => { if (chatTarget) { setSelected(chatTarget.friendId); setDraft(''); setError(''); } }, [chatTarget]);
   const friend = friends.find((m) => m.id === selected) || friends[0];
   const me = demo ? 'me' : state.ownSessionId;
   const recipient = demo ? friend?.id : friend?.id.replace(/^friend-/, '');

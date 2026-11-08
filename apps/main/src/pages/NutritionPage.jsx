@@ -10,7 +10,7 @@ import {
   macroIds,
 } from "../../../../packages/shared/nutrition.mjs";
 const progressColor = (ratio) => ratio < .25 ? "#ef2638" : ratio < .75 ? "#f58a12" : "#098d37";
-export default function NutritionPage({ state, navigate, setModal }) {
+export default function NutritionPage({ state, setState, navigate, setModal }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("Micronutrients");
   const [date, setDate] = useState(today());
@@ -70,6 +70,7 @@ export default function NutritionPage({ state, navigate, setModal }) {
           >
             Log a meal
           </button>
+          <button className="btn outline" onClick={() => { const own = state.fridges.find((f) => f.ownerId === "me"); if (own) setState((s) => ({ ...s, activeFridgeId: own.id })); setModal({ type: "add" }); }}>Add food to fridge manually</button>
           <button className="text-btn" onClick={() => navigate("goals")}>
             Food goals and target sources ↗
           </button>

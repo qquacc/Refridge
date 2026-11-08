@@ -1,3 +1,4 @@
+import { refreshDerived } from "./planning.mjs";
 import { upgradeState } from './domain.mjs';
 const fail = () => { throw Error('This file is not a valid Refridge backup. Choose a JSON file created with Export data.'); };
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -10,6 +11,7 @@ export function importBackup(text, current) {
   }
   inspect(raw);
   if (!object(raw) || !object(raw.profile) || typeof raw.profile.name !== 'string' || !object(raw.goals)) fail();
+  for (const value of Object.values(raw.goals)) if (!Number.isFinite(value) || value < 0) fail();
   for (const k of ['kcal','protein','fiber']) if (!Number.isFinite(raw.goals[k]) || raw.goals[k] < 0) fail();
   for (const key of ['items','logs','groceries','fridges','members','friendItems','staples','completedGroceries','pointsLedger','trades','dinners','plans','containers','assignedChallenges','scannerEvents','challenges','remoteTrades','remotePointsLedger']) {
     if (['items','logs','groceries','fridges','members'].includes(key) && !Array.isArray(raw[key])) fail();
@@ -34,5 +36,5 @@ export function importBackup(text, current) {
   imported.friendItems = [...imported.friendItems.filter((f) => !f.remote), ...current.friendItems.filter((f) => f.remote)];
   if (!imported.fridges.some((f) => f.id === imported.activeFridgeId)) imported.activeFridgeId = imported.fridges[0]?.id || 'my-fridge';
   if (new TextEncoder().encode(JSON.stringify(imported)).length > 1500000) throw Error('This backup is too large to save to your account.');
-  return imported;
+  try { return refreshDerived(imported); } catch { fail(); }
 }

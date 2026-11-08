@@ -1,3 +1,5 @@
+import { photoDataUrl } from "../lib/photos.mjs";
+import { cameraApi } from "../../../../packages/shared/camera-client.mjs";
 import { importBackup } from "../lib/backup.mjs";
 import React, { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
@@ -29,6 +31,22 @@ export default function FoodModal({
   );
   const [choice, setChoice] = useState(catalog[0].name);
   const [photo, setPhoto] = useState("");
+  const [recognizing, setRecognizing] = useState(false), [mealEstimate, setMealEstimate] = useState(null);
+  const [mealDraft, setMealDraft] = useState({ name: "", kcal: "", protein: "", carbs: "", fat: "", fiber: "" });
+  const recognition = React.useRef(null);
+  useEffect(() => () => recognition.current?.abort(), []);
+  async function recognizeMeal() {
+    if (!photo || recognizing) return;
+    const controller = new AbortController(); recognition.current = controller;
+    const timer = setTimeout(() => controller.abort(), 35000);
+    setRecognizing(true); setError("");
+    try {
+      const result = await cameraApi("/api/meals/recognize", { method: "POST", body: { jpegBase64: photo.split(",")[1] }, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      setMealDraft({ name: result.name, ...Object.fromEntries(["kcal", "protein", "carbs", "fat", "fiber"].map((k) => [k, result.nutrients[k] ?? ""])) }); setMealEstimate(result);
+    } catch (e) { if (!controller.signal.aborted) setError(e.message); else setError("Recognition stopped. Try again or fill in the meal manually."); }
+    finally { clearTimeout(timer); setRecognizing(false); }
+  }
   const ref = React.useRef(null);
   const title = {
     add: "Something fresh for your fridge",
@@ -147,7 +165,9 @@ export default function FoodModal({
               date: today(),
               name,
               emoji: "🍽️",
-              source: "outside",
+              source: mealEstimate ? "Gemini photo estimate · reviewed" : "outside",
+              estimated: !!mealEstimate,
+              grams: mealEstimate?.grams ?? null,
               nutrients,
             },
           ],
@@ -426,8 +446,7 @@ export default function FoodModal({
         {model.type === "outside" && (
           <form onSubmit={submit}>
             <p className="modal-intro">
-              Add a manual estimate from a menu or nutrition label. Photo
-              recognition is a future integration.
+              Take a clear meal photo for a quick AI estimate, or enter the details manually. Review all estimates before saving.
             </p>
             <label className="photo-picker">
               {photo ? (
@@ -436,7 +455,7 @@ export default function FoodModal({
                 <>
                   <span>📷</span>
                   <strong>Add a meal photo</strong>
-                  <small>Preview only · photo isn’t stored or analysed</small>
+                  <small>Choose a photo, then tap Recognize meal</small>
                 </>
               )}
               <input
@@ -444,22 +463,29 @@ export default function FoodModal({
                 accept="image/*"
                 capture="environment"
                 aria-label="Choose meal photo"
-                onChange={(e) => {
+                disabled={recognizing}
+                onChange={async (e) => {
                   const f = e.target.files?.[0];
                   if (f) {
                     if (!f.type.startsWith("image/")) {
                       setError("Choose an image file.");
                       return;
                     }
-                    setPhoto(URL.createObjectURL(f));
+                    try { setPhoto(await photoDataUrl(f, 768)); setMealEstimate(null); setError(""); } catch (e) { setError(e.message); }
                   }
                 }}
               />
             </label>
+            {photo && <button className="btn outline wide" type="button" disabled={recognizing} onClick={recognizeMeal}>{recognizing ? "Recognizing meal…" : "Recognize meal with AI"}</button>}
+            {photo && <p className="form-hint">The photo is sent to Gemini for recognition. Refridge doesn’t keep the photo.</p>}
+            {mealEstimate && <p className="notice">Approximate serving: {mealEstimate.grams ? `${mealEstimate.grams} g` : "amount unknown"}. {mealEstimate.note} Photo estimates can miss hidden ingredients; always check allergens separately.</p>}
             <label>
               Meal name
               <input
                 name="name"
+                value={mealDraft.name}
+                onChange={(e) => setMealDraft((s) => ({ ...s, name: e.target.value }))}
+                disabled={recognizing}
                 required
                 maxLength={100}
                 placeholder="e.g. Lunch at the campus café"
@@ -471,6 +497,9 @@ export default function FoodModal({
                   {k === "kcal" ? "Energy (kcal)" : k + " (g)"}
                   <input
                     name={k}
+                    value={mealDraft[k]}
+                    onChange={(e) => setMealDraft((s) => ({ ...s, [k]: e.target.value }))}
+                    disabled={recognizing}
                     type="number"
                     min="0"
                     max="100000"
@@ -480,7 +509,7 @@ export default function FoodModal({
                 </label>
               ))}
             </div>
-            <button className="btn primary wide" type="submit">
+            <button className="btn primary wide" type="submit" disabled={recognizing}>
               Save meal estimate
               <Icon name="check" size={18} />
             </button>

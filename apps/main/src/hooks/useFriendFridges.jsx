@@ -14,7 +14,9 @@ export async function socialAction(path, body = {}) {
     body,
   });
 }
-export function useFriendFridges(state, setState) {
+export function useFriendFridges(state, setState, onIncoming) {
+  const incomingHandler = useRef(onIncoming);
+  incomingHandler.current = onIncoming;
   const latest = useRef(state);
   latest.current = state;
   const [error, setError] = useState("");
@@ -22,7 +24,9 @@ export function useFriendFridges(state, setState) {
     let active = true,
       timer,
       last = "",
-      lastView = "";
+      lastView = "",
+      seenMessages = null;
+    const startedAt = Date.now();
     async function cycle() {
       const s = latest.current,
         d = readSaved(KEY);
@@ -40,6 +44,16 @@ export function useFriendFridges(state, setState) {
             last = digest;
           }
           const view = await cameraApi("/api/social", { token: d.ownerToken });
+          if (active) {
+            const messages = view.messages || [];
+            const incoming = messages.filter((m) => m.toId === (d.sessionId || d.id) && m.fromId !== m.toId &&
+              (seenMessages ? !seenMessages.has(m.id) : Date.parse(m.createdAt) >= startedAt));
+            seenMessages = new Set(messages.map((m) => m.id));
+            if (incoming.length) {
+              const message = incoming.at(-1), friend = view.friends.find((f) => f.id === message.fromId);
+              if (friend) incomingHandler.current?.({ ...message, friendId: "friend-" + friend.id, friendName: friend.name, count: incoming.length });
+            }
+          }
           if (active && JSON.stringify(view) !== lastView) {
             lastView = JSON.stringify(view);
             setState((current) => {
