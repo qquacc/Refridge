@@ -168,6 +168,20 @@ function CaptureEvent({
         <div className="camera-analysis" role="status">
           <strong>{event.analysis.state}</strong>
           <p>{event.analysis.summary}</p>
+          {event.analysis.raw?.changes?.filter((c) => c.foodName).map((c, i) => (
+            <div key={i} className="notice">
+              <strong>Food prediction: {c.foodName}</strong>
+              {Number.isFinite(c.grams) && c.grams > 0 && <p>Estimated amount: {Math.round(c.grams)} g · verify before saving</p>}
+              {c.ingredients?.length > 0 && <>
+                <p>Estimated ingredients — confirm the recipe:</p>
+                <ul>{c.ingredients.map((ingredient, j) => (
+                  <li key={j}>{ingredient.name}{ingredient.estimatedPercent != null ? ` · about ${ingredient.estimatedPercent}% by weight` : " · amount unknown"}</li>
+                ))}</ul>
+                <p>Photo estimates may miss hidden ingredients. Do not use this list to check allergens.</p>
+              </>}
+              {c.nutritionSuggestions?.length > 0 && <p>Possible Canadian nutrition references: {c.nutritionSuggestions.map((f) => f.name).join("; ")}. Suggested matches only.</p>}
+            </div>
+          ))}
           {event.analysis.operations?.map((o, i) => (
             <p key={i}>
               {o.direction === "in" ? "+" : "−"} {o.grams} g {o.foodName} ·

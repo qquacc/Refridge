@@ -60,6 +60,10 @@ export function buildAutomaticPlan(context, analysis, eventId, lookup) {
       review.push("Food or movement needs review.");
       continue;
     }
+    if (c.foodName && (c.ingredients?.length || !c.foodId)) {
+      review.push(`Prediction: ${c.foodName}. Confirm the dish, estimated ingredients, and amount before adding it.`);
+      continue;
+    }
     const known = context.inventory.find((i) => i.id === c.inventoryItemId);
     const reference = lookup(String(c.foodId));
     if (!reference) {

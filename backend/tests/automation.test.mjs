@@ -206,7 +206,7 @@ test("uncertain vision output stays in review with no inventory change and no au
   await x.request("/api/session", { token: o.ownerToken });
   assert.equal(calls, 1);
 });
-test("Gemini request uses inline images, JSON schema, container photos, and server-side authentication", async () => {
+test("Gemini request uses inline images, JSON schema, food roles, and server-side authentication", async () => {
   let request;
   const result = await analyzeWithVision(
     {
@@ -243,7 +243,7 @@ test("Gemini request uses inline images, JSON schema, container photos, and serv
   assert.equal(request.generationConfig.responseJsonSchema.properties.changes.type, "array");
   assert.equal(
     request.contents[0].parts.filter((c) => c.inlineData).length,
-    5,
+    4,
   );
   assert(request.contents[0].parts.some((p) => p.text?.includes("Top Camera (top): FOOD IDENTITY ONLY")));
   assert(request.contents[0].parts.some((p) => p.text?.includes("Side Camera (side): VOLUME/AMOUNT ONLY")));
@@ -400,7 +400,7 @@ test("Gemini timeout gives a retryable review message and uses the longer reques
   assert.equal(timeoutMs, 240000);
 });
 
-test("fast analysis uses compact food context and low thinking without dropping camera views", async () => {
+test("fast analysis uses dish-first context and low thinking without dropping camera views", async () => {
   let body;
   await analyzeWithVision(
     { before: rolePhotos, after: rolePhotos, context },
@@ -410,10 +410,23 @@ test("fast analysis uses compact food context and low thinking without dropping 
     } },
   );
   assert.deepEqual(body.generationConfig.thinkingConfig, { thinkingLevel: "LOW" });
-  assert.equal(body.generationConfig.maxOutputTokens, 4096);
+  assert.equal(body.generationConfig.maxOutputTokens, 2048);
   const prompt = JSON.parse(body.contents[0].parts[0].text);
-  assert.deepEqual(prompt.catalogColumns, ["foodId", "name"]);
-  assert(prompt.catalog.every((row) => row.length === 2));
+  assert.equal(prompt.catalog, undefined);
+  assert(prompt.task.includes("common food name"));
   assert(body.contents[0].parts[0].text.length < 8000);
   assert.equal(body.contents[0].parts.filter((p) => p.inlineData).length, 4);
+});
+
+test("dish predictions provide ingredients and local nutrition suggestions without mutating stock", async (t) => {
+  const prediction = { ...analysis, changes: [{ ...analysis.changes[0], foodId: null, foodName: "Pizza", ingredients: [{ name: "crust", estimatedPercent: 60 }, { name: "cheese", estimatedPercent: 25 }, { name: "tomato sauce", estimatedPercent: 15 }] }] };
+  const { x, o, a, b } = await enabled(t, async () => structuredClone(prediction));
+  await capture(x, o, [a, b]);
+  const event = await capture(x, o, [a, b]);
+  const s = await waitFor(x, o, (s) => s.events.find((e) => e.id === event.id)?.analysis?.state === "needs-review");
+  const result = s.events.find((e) => e.id === event.id).analysis;
+  assert.match(result.summary, /Prediction: Pizza/);
+  assert.equal(result.raw.changes[0].ingredients.length, 3);
+  assert(result.raw.changes[0].nutritionSuggestions.length > 0);
+  assert.equal(s.context.inventory[0].grams, 150);
 });

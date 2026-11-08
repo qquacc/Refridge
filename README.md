@@ -113,3 +113,5 @@ Pair exactly one **Top Camera** and one **Side Camera** using the role selector 
 For cameras paired with older generic names, remove and pair them again with the correct role, then capture a new reference scene.
 
 Existing browser storage keys, the `.fridgeful-data/` directory, and the `fridgeful-data` Docker volume retain their original names for compatibility, so the Refridge rename preserves saved profiles, inventory, and camera pairings.
+
+Camera recognition now predicts common dish names and likely ingredient proportions without asking Gemini to choose nutrition IDs. The server searches CNF locally for suggested dish references. Ingredient breakdowns and visual quantities are estimates shown for review, not verified recipes; mixed dishes do not automatically change stock. Before/after views are retained, and container reference images are omitted from this lightweight prediction request.

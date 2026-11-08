@@ -1,3 +1,4 @@
+import { enrichFoodPredictions } from "./predictions.mjs";
 import { randomUUID } from "node:crypto";
 import { analyzeWithVision } from "./vision.mjs";
 import {
@@ -115,7 +116,7 @@ export function createAutomation({
         if (e)
           e.analysis = {
             state: "processing",
-            summary: "Comparing both angles with the previous scene…",
+            summary: "Predicting food and likely ingredients…",
           };
       });
       const photos = async (list) =>
@@ -132,6 +133,7 @@ export function createAutomation({
         context: s.context,
       });
       await loadNutrition();
+      await enrichFoodPredictions(analysis);
       const plan = buildAutomaticPlan(
         s.context,
         analysis,
