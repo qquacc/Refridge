@@ -5,6 +5,7 @@ import AccountGate from "./components/AccountGate.jsx";
 import "./styles/base.css";
 import "./styles/features.css";
 import "./angular.css";
+import "./styles/mobile.css";
 function Startup() {
   const [welcoming, setWelcoming] = useState(true);
   const finish = useCallback(() => setWelcoming(false), []);
