@@ -1,3 +1,4 @@
+import { countLabel } from "../lib/text.mjs";
 import WeightCheckIn from "../components/WeightCheckIn.jsx";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Icon from "../components/Icon.jsx";
@@ -118,7 +119,7 @@ export default function OverviewPage({ state, setState, remaining, navigate, set
   const useSoon = foods.filter((f) => ["urgent", "past"].includes(freshness(f.expires).tone)).length;
   function add() { if (fridge) setState((s) => ({ ...s, activeFridgeId: fridge.id })); setModal({ type: "add" }); }
   return <div className="feature-page fridge-home">
-    <div className="fridge-home-heading"><div><h1>Your fridge.</h1><p>{foods.length} foods{useSoon ? ` · ${useSoon} to use soon` : ""}. Tap anything to see its date and nutrients.</p></div><button className="btn primary" onClick={add}><Icon name="plus" size={16} /> Add food</button></div>
+    <div className="fridge-home-heading"><div><h1>Your fridge.</h1><p>{countLabel(foods.length, "food")}{useSoon ? ` · ${useSoon} to use soon` : ""}. Tap anything to see its date and nutrients.</p></div><button className="btn primary" onClick={add}><Icon name="plus" size={16} /> Add food</button></div>
     <WeightCheckIn state={state} setState={setState} />
     <section className="rf-fridge" aria-label={`${fridge?.name || "My fridge"} contents`}>
       <div className="rf-topbar">

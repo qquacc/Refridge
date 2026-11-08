@@ -1121,3 +1121,5 @@ button:not(:disabled):hover,
 .scan-page .automatic-tracking-panel .inline-toggle input { margin: 3px 0 0; }
 .scan-page .automatic-tracking-panel .feature-form > .btn { justify-self: start; margin-top: 4px; }
 .scan-page .camera-device-list > div { padding-top: 16px; padding-bottom: 16px; }
+
+.inventory-friends-toggle { display: flex; align-items: center; gap: 10px; line-height: 1.5; padding-block: 8px; }

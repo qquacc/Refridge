@@ -1,3 +1,5 @@
+import { countLabel } from "../lib/text.mjs";
+import { visibleInventory } from "../lib/inventory-view.mjs";
 import { socialAction } from "../hooks/useFriendFridges.jsx";
 import React, { useState } from "react";
 import { Panel, Field } from "../components/FeatureUI.jsx";
@@ -14,6 +16,7 @@ export default function InventoryPage({
   community = false,
 }) {
   const [query, setQuery] = useState("");
+  const [includeFriends, setIncludeFriends] = useState(false);
   const [inspectId, setInspectId] = useState(null);
   const inspection = React.useRef(null);
   React.useEffect(() => { if (inspectId) { inspection.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); inspection.current?.focus({ preventScroll: true }); } }, [inspectId]);
@@ -23,12 +26,8 @@ export default function InventoryPage({
   const all = allInventory(state);
   const visibleFridges = state.fridges.filter((f) => community || f.ownerId === "me");
   const activeId = community && inspectId && visibleFridges.some((f) => f.id === inspectId) ? inspectId : visibleFridges.some((f) => f.id === state.activeFridgeId) ? state.activeFridgeId : visibleFridges[0]?.id;
-  const foods = all.filter(
-    (i) =>
-      i.fridgeId === activeId &&
-      i.grams > 0 &&
-      i.name.toLowerCase().includes(query.toLowerCase()),
-  );
+  const foods = visibleInventory(state, { includeFriends, fridgeId: community ? activeId : null, query });
+  const ownFridgeId = state.fridges.find((f) => f.ownerId === "me" && !f.remote)?.id;
   const mine = all.filter((i) => i.ownerId === "me" && i.grams > 0);
   return (
     <div className="feature-page">
@@ -69,7 +68,7 @@ export default function InventoryPage({
         ))}
       <h3 className="connected-fridges-heading">Friends’ fridges</h3>
         {state.fridges.filter((f) => f.remote || f.ownerId !== "me").map((f) => <div className="fridge-row" key={f.id}>
-          <div><strong>{f.name}</strong><small className="row-note">{f.remote ? "Connected friend" : "Sample connection"} · {all.filter((i) => i.fridgeId === f.id && i.grams > 0).length} foods</small></div>
+          <div><strong>{f.name}</strong><small className="row-note">{f.remote ? "Connected friend" : "Sample connection"} · {countLabel(all.filter((i) => i.fridgeId === f.id && i.grams > 0).length, "food")}</small></div>
           <button className="btn outline" onClick={() => { setInspectId(f.id); setSelected(null); setState((s) => ({ ...s, activeFridgeId: f.id })); }}>Open fridge <span aria-hidden="true">↗</span></button>
           <label className="inline-toggle"><input type="checkbox" checked={!!f.shared} onChange={(e) => setState((s) => ({ ...s, fridges: s.fridges.map((x) => x.id === f.id ? { ...x, shared: e.target.checked } : x) }))} />Include in shared meals</label>
         </div>)}
@@ -79,12 +78,14 @@ export default function InventoryPage({
       {(!community || inspectId) && <>
       {community && <div className="kitchens-heading" ref={inspection} tabIndex={-1}><h2>{state.fridges.find((f) => f.id === activeId)?.name}</h2><button className="text-btn" onClick={() => { setInspectId(null); setSelected(null); }}>Close fridge</button></div>}
       <div className="inventory-toolbar">
-        <Field label="Fridge">
+        {community && <Field label="Fridge">
           <select
             value={activeId || ""}
             onChange={(e) => {
+              const id = e.target.value;
               setSelected(null);
-              setState((s) => ({ ...s, activeFridgeId: e.target.value }));
+              setInspectId(id);
+              setState((s) => ({ ...s, activeFridgeId: id }));
             }}
           >
             {visibleFridges.map((f) => (
@@ -93,20 +94,21 @@ export default function InventoryPage({
               </option>
             ))}
           </select>
-        </Field>
+        </Field>}
+        {!community && <label className="inline-toggle inventory-friends-toggle"><input type="checkbox" checked={includeFriends} onChange={(e) => { setIncludeFriends(e.target.checked); setSelected(null); }} />Include friends’ fridges</label>}
         {!community && <Field
           label="Find food"
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search this fridge"
+          placeholder={includeFriends ? "Search your food and friends’ food" : "Search your food"}
         />}
         <button
           className="btn outline"
           disabled={
-            state.fridges.find((f) => f.id === activeId)?.ownerId !== "me"
+            community ? state.fridges.find((f) => f.id === activeId)?.ownerId !== "me" : !ownFridgeId
           }
-          onClick={() => { setState((s) => ({ ...s, activeFridgeId: activeId })); setModal({ type: "add" }); }}
+          onClick={() => { setState((s) => ({ ...s, activeFridgeId: community ? activeId : ownFridgeId })); setModal({ type: "add" }); }}
         >
           Add or correct food
         </button>
@@ -128,7 +130,7 @@ export default function InventoryPage({
                 }}
               >
                 <span className="food-tile-art">{i.emoji}</span>
-                <span className="eyebrow">{memberName(state, i.ownerId)}</span>
+                <span className="eyebrow">{memberName(state, i.ownerId)}{includeFriends && !community ? ` · ${state.fridges.find((f) => f.id === i.fridgeId)?.name || "Fridge"}` : ""}</span>
                 <strong>{i.name}</strong>
                 <span>
                   {Math.round(i.grams)} g{i.estimated ? " · estimated" : ""}
@@ -158,7 +160,7 @@ export default function InventoryPage({
                 >
                   Details
                 </button>
-                {["me", "shared"].includes(i.ownerId) ? (
+                {!i.remote && state.fridges.find((f) => f.id === i.fridgeId)?.ownerId === "me" && ["me", "shared"].includes(i.ownerId) ? (
                   <button
                     onClick={() => setModal({ type: "consume", food: i })}
                   >
