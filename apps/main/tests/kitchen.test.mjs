@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { groupFridgeFoods, fridgeCategory } from "../src/lib/fridge-layout.mjs";
 import { saveCheckIn, wellbeingSeries, metricAverage } from "../src/lib/wellbeing.mjs";
-import { finishOnboardingStep } from "../src/lib/onboarding.mjs";
+import { finishOnboardingStep, onboardingQuestions, currentOnboardingStep } from "../src/lib/onboarding.mjs";
 import { upgradeState } from "../src/lib/domain.mjs";
 import { initialState } from "../src/data/food.mjs";
 
@@ -60,10 +60,30 @@ test("onboarding persists one answer at a time, can skip optional questions, and
   assert.equal(state.profile.name, "Alex"); assert.equal(state.onboarding.step, 1);
   assert.equal(state.members.find((m) => m.id === "me").name, "Alex");
   state = finishOnboardingStep(state, draft, 1, "2026-11-07", true);
-  for (let step = 2; step < 6; step++) state = finishOnboardingStep(state, draft, step, "2026-11-07");
+  for (let step = 2; step < onboardingQuestions.length; step++) state = finishOnboardingStep(state, draft, step, "2026-11-07");
   assert.equal(state.onboarding.completed, true); assert.equal(state.profile.complete, true);
   assert.equal(state.profile.birthday, ""); assert.deepEqual(state.profile.allergenAvoid, ["Peanuts"]);
   assert.deepEqual(state.profile.diets, ["Vegan"]);
   assert.throws(() => finishOnboardingStep(state, { ...draft, name: " " }, 0, "2026-11-07"), /name/);
   assert.throws(() => finishOnboardingStep(state, { ...draft, birthday: "2026-02-31" }, 1, "2026-11-07"), /birthday/);
+});
+
+test("onboarding asks body questions individually, saves units correctly, and resumes old flows safely", () => {
+  let state = upgradeState(initialState());
+  const draft = { ...state.profile, weightKg: "72.5", heightM: 1.78, gender: "Non-binary" };
+  state = finishOnboardingStep(state, draft, 2, "2026-11-08");
+  assert.equal(state.profile.weightKg, 72.5);
+  state = finishOnboardingStep(state, draft, 3, "2026-11-08");
+  assert.equal(state.profile.heightM, 1.78);
+  state = finishOnboardingStep(state, draft, 4, "2026-11-08");
+  assert.equal(state.profile.gender, "Non-binary");
+  assert.equal(state.profile.referenceSex, "");
+  assert.equal(state.profile.lifeStage, "Neither");
+  assert.equal(state.onboarding.version, 2);
+  assert.equal(currentOnboardingStep({ onboarding: { step: 5 } }), 2);
+  assert.equal(currentOnboardingStep({ onboarding: { version: 2, step: 7 } }), 7);
+  assert.throws(() => finishOnboardingStep(state, { ...draft, weightKg: -1 }, 2, "2026-11-08"), /weight/);
+  assert.throws(() => finishOnboardingStep(state, { ...draft, heightM: 178 }, 3, "2026-11-08"), /height/);
+  const skipped = finishOnboardingStep(state, { ...draft, weightKg: "" }, 2, "2026-11-08", true);
+  assert.equal(skipped.profile.weightKg, 72.5);
 });

@@ -216,13 +216,13 @@ export default function ProfilePage({ state, setState, notify }) {
         </form>
       </Panel>
       <Panel
-        title="Your calculated reference"
+        title="Your maintenance reference"
         subtitle={calc.available ? calc.method : calc.reason}
       >
         {calc.available ? (
           <div className="feature-metrics">
             <div className="feature-metric">
-              <span>Estimated daily energy</span>
+              <span>Estimated maintenance energy</span>
               <strong>{calc.targets.kcal} kcal</strong>
             </div>
             <div className="feature-metric">

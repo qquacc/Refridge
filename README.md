@@ -128,8 +128,14 @@ Passwords use individually salted scrypt hashes; only hashes of random seven-day
 
 ## Guided setup, fridge home, and well-being
 
-New or incomplete profiles open a six-question setup: name, age/date of birth, eating preferences, ingredients to avoid, activity, and priority. Optional questions can be skipped, setup can be deferred, and progress is saved per account. Existing completed profiles go straight to the fridge. Reopen setup from My profile.
+New or incomplete profiles open a nine-question setup: name, age/date of birth, weight (kg), height (cm), gender, eating preferences, ingredients to avoid, activity, and priority. Pregnancy/lactation is not asked during onboarding. Optional questions can be skipped, setup can be deferred, and progress is saved per account. Existing completed profiles go straight to the fridge. Reopen setup from My profile.
 
 The home page groups all positive-stock items in the selected local fridge into condiments, prepared food, dairy/eggs/drinks, fruit, grains/plant proteins, vegetables, and meat/seafood. These shelves are a category organizer, not camera-derived physical positions. Dates and quantities remain editable through the food cards.
 
 Well-being & trends stores optional daily mood, energy, stress, sleep, and context notes privately in the account. One check-in per date can be edited. Charts cover 30, 90, or 365 days, and include recorded protein/fibre from the signed-in user's food diary. Unlogged days stay blank; known zeroes remain zero and partial nutrient data is labeled. These descriptive charts do not diagnose conditions or infer causes. Check-ins are not sent to Gemini or the friend feed.
+
+## Priority-specific food goals
+
+Food Goals previews calculations immediately and applies them when saved. Automatic targets elsewhere use the selected priority through the same shared calculator. Adult Bulking starts from the existing maintenance-energy reference, adds an editable 0–10% surplus (default 5%), and uses editable 1.4–2.0 g protein/kg (default 1.8). Protein is capped at 25% of planned energy, fat uses 30%, and carbohydrate is the remaining energy; fibre stays at its existing reference. The bulking adjustment is unavailable for under-19 profiles or incomplete/unsupported profile inputs. These are approximate planning assumptions, not a guaranteed body-weight or muscle-gain outcome.
+
+Affordability retains maintenance nutrition references and divides the entered weekly CAD budget by seven days and the configured number of meals. These are spending limits, not market prices. Less waste calculates eligible stock approaching its saved date within three days, past-date grams separately, and unknown-date counts. Balanced variety counts distinct logged food/dish names over seven calendar days against an editable exploration goal (default 12, an app planning assumption rather than a clinical target). Manual nutrition targets are never overwritten by a priority change.

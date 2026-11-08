@@ -184,9 +184,9 @@ export default function App({ account, onLogout }) {
     (state.profile.name || "Y")[0]
   );
   if (state.onboarding?.completed === false || (!state.onboarding && !state.profile.complete))
-    return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error} />;
+    return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error || toast} onLogout={signOut} signingOut={signingOut} />;
   return (
-    <div className="app-shell">
+    <div className={"app-shell" + (page === "home" ? " home-screen" : "")}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -269,6 +269,7 @@ export default function App({ account, onLogout }) {
             <strong>{nav.find((n) => n[0] === page)?.[1] || "More"}</strong>
           </div>
           <div className="topbar-right">
+            <button className="btn outline header-logout" disabled={signingOut} onClick={signOut}>{signingOut ? "Logging out…" : "Log out"}</button>
             <span className="local-pill">
               {offline ? "Offline" : cloud.status}
             </span>

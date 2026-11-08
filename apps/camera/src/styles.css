@@ -595,3 +595,7 @@ button:not(:disabled):hover {
 
 /* Camera role uses the same form styling as the pairing code. */
 select { font: inherit; color: inherit; background: #fff; border: 1px solid #d5ddcf; padding: 12px; width: 100%; }
+
+.camera-header-actions { display: flex; align-items: center; gap: 12px; }
+.camera-logout { background: transparent; color: #285c43; border: 1px solid #a8b99d; padding: 9px 12px; font: inherit; font-size: 12px; white-space: nowrap; }
+@media (max-width: 500px) { .camera-header-actions .app-tag { display: none; } }

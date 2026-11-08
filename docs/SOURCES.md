@@ -48,3 +48,15 @@ Official request format and image inputs: https://ai.google.dev/gemini-api/docs/
 Structured output guides: https://ai.google.dev/gemini-api/docs/structured-output
 
 Model responses propose food IDs and changes. The server resolves measured nutrition from CNF instead of accepting model-generated nutrient numbers. No paid-provider call was made during validation because no key was configured.
+
+## Priority goal calculations
+
+Sports protein range: International Society of Sports Nutrition position stand, protein and exercise (1.4–2.0 g/kg/day for most exercising individuals): https://pmc.ncbi.nlm.nih.gov/articles/PMC5477153/
+
+Energy surplus evidence: trial comparing maintenance, 5%, and 15% energy surpluses in resistance-trained participants; larger surpluses did not guarantee more muscle gain: https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361/
+
+The app selects an editable 5% starting surplus and 1.8 g/kg starting protein factor for adult bulking; these are approximate product planning defaults within the cited contexts, not individually validated prescriptions. The 25%-energy protein cap and 30%-fat/remainder-carbohydrate allocation are explicit app assumptions. No automated bulking adjustment is added for under-19 users, pregnancy/lactation, or incomplete/unsupported profile inputs.
+
+Canada's Food Guide on budget planning and inexpensive plant proteins: https://www.canada.ca/en/health-canada/services/food-guide/eating-support/meal-planning-grocery-shopping/healthy-eating-budget.html
+
+Budget-per-day and budget-per-meal figures are arithmetic spending limits based on user inputs; the app has no live pricing source. The weekly variety exploration goal is an editable personal planning target, not a nutrient recommendation.

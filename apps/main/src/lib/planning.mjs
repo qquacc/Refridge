@@ -1,9 +1,9 @@
+import { calculateGoalTargets } from "../../../../packages/shared/goal-targets.mjs";
 import { catalog, today, daysFromNow, uid } from "../data/food.mjs";
 import { recipeFits } from "../../../../packages/shared/dietary.mjs";
 import { mealRecipes, cuisines } from "../../../../packages/shared/recipes.mjs";
 import {
   recipeNutrients,
-  automaticTargets,
 } from "../../../../packages/shared/nutrition.mjs";
 export { cuisines };
 export function activeInventory(s, ids = [s.activeFridgeId]) {
@@ -29,7 +29,7 @@ export function allowedRecipes(s, ids = [s.activeFridgeId]) {
       ) / r.ingredients.length;
     const soon = r.ingredients.filter(([name]) =>
       pool.some(
-        (i) => i.name === name && i.expires && i.expires <= daysFromNow(2),
+        (i) => i.name === name && i.expires && i.expires <= daysFromNow(s.profile.goal === "Less waste" ? 3 : 2),
       ),
     ).length;
     const repetition = recent.filter((l) => l.recipeId === r.id).length;
@@ -282,7 +282,7 @@ export function refreshDerived(s) {
   let next = reconcileGroceries(learnUsualStock(s));
   next = reconcileChallenges(next);
   if (next.profile.targetMode !== "manual") {
-    const calculated = automaticTargets(next.profile);
+    const calculated = calculateGoalTargets(next.profile);
     next = {
       ...next,
       targetCalculation: calculated,

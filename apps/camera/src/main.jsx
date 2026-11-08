@@ -1,3 +1,4 @@
+import { initialCameraPairing, verifyCameraPairing } from "../../../packages/shared/camera-pairing.mjs";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -8,14 +9,15 @@ import {
 import "./styles.css";
 const KEY = "fridgeful:camera-device:v1";
 function CameraApp() {
-  const [device, setDevice] = useState(() => readSaved(KEY));
-  const [code, setCode] = useState(
-    () => new URLSearchParams(location.search).get("pair") || "",
-  );
-  const [name, setName] = useState(
-    () => ["Top Camera", "Side Camera"].includes(readSaved(KEY)?.cameraName)
-      ? readSaved(KEY).cameraName : "Top Camera",
-  );
+  const [startup] = useState(() => initialCameraPairing(readSaved(KEY), location.search));
+  const [device, setDevice] = useState(startup.device);
+  const [code, setCode] = useState(startup.code);
+  const [name, setName] = useState(startup.name);
+  // Always offer code entry. A valid saved pairing can be resumed explicitly.
+  const [showPairing, setShowPairing] = useState(true);
+  const [verified, setVerified] = useState(false);
+  const [checkingSaved, setCheckingSaved] = useState(false);
+  const [checkAttempt, setCheckAttempt] = useState(0);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Ready to pair");
   const [busy, setBusy] = useState(false);
@@ -35,9 +37,25 @@ function CameraApp() {
     previous = useRef(null);
   deviceRef.current = device;
   useEffect(() => {
-    if (!code) return;
-    history.replaceState({}, "", location.pathname);
+    if (!startup.device) saveDevice(KEY, null);
+    if (startup.forcePairing) history.replaceState({}, "", location.pathname);
   }, []);
+  useEffect(() => {
+    if (!device || !showPairing) return;
+    let active = true;
+    setVerified(false); setCheckingSaved(true);
+    verifyCameraPairing(device, cameraApi).then(() => {
+      if (active) { setVerified(true); setError(""); }
+    }).catch((error) => {
+      if (!active) return;
+      if (error.status === 401 || error.status === 403 || error.status === 404) {
+        saveDevice(KEY, null); setDevice(null);
+        setStatus("Ready to pair");
+        setError("The saved camera connection is no longer valid. Enter a fresh pairing code from the main app.");
+      } else setError("Could not verify the saved connection. Enter a pairing code or try checking the connection again. " + error.message);
+    }).finally(() => { if (active) setCheckingSaved(false); });
+    return () => { active = false; };
+  }, [device, showPairing, checkAttempt]);
   useEffect(() => {
     const onVisibility = () => {
       setHidden(document.hidden);
@@ -63,6 +81,8 @@ function CameraApp() {
       });
       saveDevice(KEY, result);
       setDevice(result);
+      sent.current.clear(); setShots(0); setLastShot(null);
+      setVerified(true); setShowPairing(false);
       setCode("");
       setStatus("Paired with " + result.fridgeName);
     } catch (e) {
@@ -190,8 +210,13 @@ function CameraApp() {
         }
       } catch (e) {
         if (active) {
-          setError(e.message);
-          setStatus("Connection interrupted · retrying");
+          if (e.status === 401 || e.status === 403 || e.status === 404) {
+            await disconnect();
+            setError("This camera was disconnected. Enter a fresh pairing code from your main app.");
+          } else {
+            setError(e.message);
+            setStatus("Connection interrupted · retrying");
+          }
         }
       } finally {
         if (active) timer = setTimeout(heartbeat, 2000);
@@ -269,6 +294,7 @@ function CameraApp() {
     await stop();
     saveDevice(KEY, null);
     setDevice(null);
+    setShowPairing(true); setVerified(false); setCheckingSaved(false);
     sent.current.clear();
     setShots(0);
     setLastShot(null);
@@ -282,7 +308,9 @@ function CameraApp() {
           <img src="/camera/fridge-mark.svg" alt="" width="40" height="44" />
           Refridge<span className="logo-dot">.</span>
         </a>
-        <span className="app-tag">CAMERA COMPANION</span>
+        <div className="camera-header-actions"><span className="app-tag">CAMERA COMPANION</span>
+          {device && <button type="button" className="camera-logout" disabled={busy} onClick={disconnect} title="Stop this camera and clear its saved pairing">Log out</button>}
+        </div>
       </header>
       <main>
         <div className="intro">
@@ -309,7 +337,7 @@ function CameraApp() {
             to capture.
           </div>
         )}
-        {!device ? (
+        {!device || showPairing ? (
           <section className="panel">
             <div className="panel-heading">
               <span className="step-number">01</span>
@@ -321,6 +349,14 @@ function CameraApp() {
                 </p>
               </div>
             </div>
+            {device && <div className="note" role="status">
+              <p>Saved connection: <strong>{device.cameraName}</strong> · {device.fridgeName || "your fridge"}.</p>
+              <button type="button" className="button secondary" disabled={!verified || checkingSaved || busy} onClick={() => { setShowPairing(false); setError(""); setStatus("Paired · start the camera to appear online"); }}>
+                {checkingSaved ? "Checking saved connection…" : "Continue with saved camera"}
+              </button>
+              {!verified && !checkingSaved && <button type="button" className="text-btn" onClick={() => setCheckAttempt((n) => n + 1)}>Check saved connection again</button>}
+              <p>Or enter a new code below to pair with another fridge.</p>
+            </div>}
             <form onSubmit={pair}>
               <label>
                 Camera role
@@ -334,6 +370,7 @@ function CameraApp() {
                 Six-character pairing code
                 <input
                   className="code-input"
+                  autoFocus={!startup.device}
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   autoComplete="off"
@@ -347,7 +384,7 @@ function CameraApp() {
               </label>
               <p className="hint">
                 Codes expire after 2 minutes and work once. Create a fresh code
-                for each phone.
+                for each phone. After pairing, tap Start camera and allow camera access; the main app only shows a camera as online once it is running.
               </p>
               <button className="button primary" disabled={busy} type="submit">
                 {busy ? "Pairing…" : "Pair with my fridge"}
@@ -424,6 +461,7 @@ function CameraApp() {
                   </button>
                 )}
               </div>
+              {!running && <button type="button" className="button secondary" onClick={() => { setShowPairing(true); setCode(""); setError(""); }}>Enter a new pairing code</button>}
               <div className="camera-stats">
                 <div>
                   <strong>{shots}</strong>
