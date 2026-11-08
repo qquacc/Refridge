@@ -17,10 +17,10 @@ const children = [
   }),
   spawn(
     "npm",
-    ["run", "dev", "-w", "@fridgeful/main", "--", "--port", mainPort],
+    ["run", "dev", "-w", "@refridge/main", "--", "--port", mainPort],
     { stdio: "inherit" },
   ),
-  spawn("npm", ["run", "dev", "-w", "@fridgeful/camera"], { stdio: "inherit" }),
+  spawn("npm", ["run", "dev", "-w", "@refridge/camera"], { stdio: "inherit" }),
 ];
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => {

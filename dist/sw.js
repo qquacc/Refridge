@@ -1,4 +1,4 @@
-const CACHE='fridgeful-3ade8f484427';const ASSETS=["/","/index.html","/manifest.webmanifest","/icon.svg","/brand.svg","/icon-192.png","/icon-512.png","/apple-touch-icon.png","/assets/index-BvTeCQRo.js","/assets/index-SeEh_mvi.css"];
+const CACHE='fridgeful-d165b2bfe426';const ASSETS=["/","/index.html","/manifest.webmanifest","/icon.svg","/brand.svg","/fridge-mark.svg","/icon-192.png","/icon-512.png","/apple-touch-icon.png","/assets/index-DINiqVOW.css","/assets/index-GNQY9efF.js"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('fridgeful-')&&!k.startsWith('fridgeful-camera-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin||!ASSETS.includes(u.pathname))return;

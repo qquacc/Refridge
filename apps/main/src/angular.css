@@ -97,10 +97,12 @@ button:not(:disabled):hover,
   text-align: left;
   padding: 0;
   cursor: pointer;
-  color: #153f35;
+  color: #253c31;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 700;
 }
 .brand-dot {
-  color: #658931;
+  color: #94ae74;
 }
 .workspace {
   border: 1px solid var(--line);

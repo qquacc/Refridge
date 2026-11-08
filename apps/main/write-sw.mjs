@@ -7,15 +7,20 @@ const files = [
   "/manifest.webmanifest",
   "/icon.svg",
   "/brand.svg",
+  "/fridge-mark.svg",
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
   ...assets.map((a) => "/assets/" + a),
 ];
-const version = createHash("sha256")
-  .update(await readFile("dist/index.html"))
-  .digest("hex")
-  .slice(0, 12);
+// Include public images as well as bundles so logo-only updates invalidate offline caches.
+const hash = createHash("sha256");
+for (const file of files) {
+  const relative = file.slice(1);
+  hash.update(file);
+  hash.update(await readFile("dist/" + (relative || "index.html")));
+}
+const version = hash.digest("hex").slice(0, 12);
 await writeFile(
   "dist/sw.js",
   `const CACHE='fridgeful-${version}';const ASSETS=${JSON.stringify(files)};

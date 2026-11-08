@@ -5,6 +5,10 @@ import { canadianCatalog } from "../../packages/shared/data/cnf-catalog.mjs";
 import { analyzeWithVision } from "../vision.mjs";
 import { loadNutrition, canadianFood, searchNutrition } from "../nutrition.mjs";
 const spinach = canadianCatalog[0];
+const rolePhotos = [
+  { cameraId: "top", cameraName: "Top Camera", bytes: jpg },
+  { cameraId: "side", cameraName: "Side Camera", bytes: jpg },
+];
 const context = {
   inventory: [
     { ...spinach, id: "lot", fridgeId: "my-fridge", ownerId: "me", grams: 150 },
@@ -49,7 +53,7 @@ async function enabled(t, vision = async () => analysis) {
   });
   const o = await x.owner(),
     a = await x.pair(o),
-    b = await x.pair(o, "Second angle");
+    b = await x.pair(o, "Side Camera");
   await x.ready(a);
   await x.ready(b);
   await x.request("/api/context", {
@@ -202,12 +206,12 @@ test("uncertain vision output stays in review with no inventory change and no au
   await x.request("/api/session", { token: o.ownerToken });
   assert.equal(calls, 1);
 });
-test("vision request uses image inputs, strict schema, container photos, and store:false", async () => {
+test("Gemini request uses inline images, JSON schema, container photos, and server-side authentication", async () => {
   let request;
   const result = await analyzeWithVision(
     {
-      before: [{ cameraId: "a", bytes: jpg }],
-      after: [{ cameraId: "a", bytes: jpg }],
+      before: rolePhotos,
+      after: rolePhotos,
       context: {
         ...context,
         containers: [
@@ -223,36 +227,33 @@ test("vision request uses image inputs, strict schema, container photos, and sto
       apiKey: "test-secret",
       fetchImpl: async (url, args) => {
         request = { url, ...JSON.parse(args.body) };
-        assert.equal(args.headers.Authorization, "Bearer test-secret");
+        assert.equal(args.headers["x-goog-api-key"], "test-secret");
         return {
           ok: true,
           json: async () => ({
-            output: [
-              {
-                content: [
-                  { type: "output_text", text: JSON.stringify(analysis) },
-                ],
-              },
-            ],
+            candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(analysis) }] } }],
           }),
         };
       },
     },
   );
   assert.equal(result.changes[0].foodId, spinach.cnfId);
-  assert.equal(request.store, false);
-  assert.equal(request.text.format.strict, true);
+  assert.equal(request.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+  assert.equal(request.generationConfig.responseMimeType, "application/json");
+  assert.equal(request.generationConfig.responseJsonSchema.properties.changes.type, "array");
   assert.equal(
-    request.input[0].content.filter((c) => c.type === "input_image").length,
-    3,
+    request.contents[0].parts.filter((c) => c.inlineData).length,
+    5,
   );
+  assert(request.contents[0].parts.some((p) => p.text?.includes("Top Camera (top): FOOD IDENTITY ONLY")));
+  assert(request.contents[0].parts.some((p) => p.text?.includes("Side Camera (side): VOLUME/AMOUNT ONLY")));
   assert(!JSON.stringify(request).includes("test-secret"));
 });
 test("vision provider failure does not create fabricated nutrition", async () => {
   await assert.rejects(
     () =>
       analyzeWithVision(
-        { before: [], after: [], context },
+        { before: rolePhotos, after: rolePhotos, context },
         { apiKey: "key", fetchImpl: async () => ({ ok: false, status: 429 }) },
       ),
     /429/,
@@ -260,17 +261,28 @@ test("vision provider failure does not create fabricated nutrition", async () =>
   await assert.rejects(
     () =>
       analyzeWithVision(
-        { before: [], after: [], context },
+        { before: rolePhotos, after: rolePhotos, context },
         {
           apiKey: "key",
           fetchImpl: async () => ({
             ok: true,
-            json: async () => ({ output_text: "not json" }),
+            json: async () => ({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: "not json" }] } }] }),
           }),
         },
       ),
     /incomplete/,
   );
+});
+test("blocked or truncated Gemini output is held for manual review", async () => {
+  for (const finishReason of ["SAFETY", "MAX_TOKENS", undefined]) {
+    await assert.rejects(() => analyzeWithVision(
+      { before: rolePhotos, after: rolePhotos, context },
+      { apiKey: "key", fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({ candidates: [{ finishReason, content: { parts: [{ text: JSON.stringify(analysis) }] } }] }),
+      }) },
+    ), /incomplete or blocked/);
+  }
 });
 test("the imported Health Canada dataset contains full foods and resolves official food IDs", async () => {
   const all = await loadNutrition();
@@ -346,4 +358,13 @@ test("a delayed old capture cannot reverse inventory after a newer reference sce
   assert.equal(calls, 0);
   assert.equal(s.context.inventory[0].grams, 150);
   assert.match(s.events.find((e) => e.id === old.id).analysis.summary, /older/);
+});
+
+test("vision rejects missing or generic camera roles before contacting Gemini", async () => {
+  let calls = 0;
+  await assert.rejects(() => analyzeWithVision(
+    { before: rolePhotos, after: [{ ...rolePhotos[0], cameraName: "Camera 1" }, rolePhotos[1]], context },
+    { apiKey: "key", fetchImpl: async () => { calls++; } },
+  ), /Top Camera and one Side Camera/);
+  assert.equal(calls, 0);
 });

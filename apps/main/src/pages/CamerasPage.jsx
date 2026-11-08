@@ -528,7 +528,7 @@ export default function CamerasPage({ state, setState, notify }) {
       {!device ? (
         <Panel
           title="Bring your fridge into focus"
-          subtitle="Pair two camera phones with this main phone."
+          subtitle="Pair one Top Camera for food identity and one Side Camera for volume and amount."
         >
           <div className="feature-form">
             <Field label="Fridge to connect">
@@ -563,7 +563,7 @@ export default function CamerasPage({ state, setState, notify }) {
             <p className="body-copy">
               {visionStatus?.keyConfigured
                 ? "Vision provider configured · " + visionStatus.model
-                : "Add OPENAI_API_KEY to the included Node server’s .env and restart it. No image analysis is available until a key is configured."}
+                : "Add GEMINI_API_KEY to the included Node server’s .env and restart it. No image analysis is available until a key is configured."}
             </p>
             <p className="form-hint">
               Container reference photos and inside dimensions help estimate
@@ -572,6 +572,7 @@ export default function CamerasPage({ state, setState, notify }) {
               assigned container or the default owner of this session; faces are
               not identified.
             </p>
+            <p>Top Camera identifies the food only. Side Camera determines its volume and amount only. Pair one of each role. Cameras with older names must be removed and paired again; then save a new reference scene.</p>
             {!session?.automation?.enabled ? (
               <div className="feature-form">
                 <label className="inline-toggle">

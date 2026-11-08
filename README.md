@@ -2,13 +2,13 @@
 
 This version includes a Vercel Node API and MongoDB persistence for the existing main app and browser Camera Companion. Photos are stored in MongoDB as separate binary records. **Start with [the Vercel setup guide](docs/VERCEL_MONGODB.md).** No persistent host disk or Cloudflare tunnel is needed for that deployment.
 
-Add `MONGODB_URI`, `MONGODB_DB=fridgeful`, and optionally `OPENAI_API_KEY` in Vercel, then deploy the whole repository using its root `vercel.json`. Keep `VITE_CAMERA_API_URL` blank. The native-companion experiment is not included.
+Add `MONGODB_URI`, `MONGODB_DB=fridgeful`, and optionally `GEMINI_API_KEY` in Vercel, then deploy the whole repository using its root `vercel.json`. Keep `VITE_CAMERA_API_URL` blank. The native-companion experiment is not included.
 
 Local `npm start` still works with file storage when `MONGODB_URI` is unset. Details below about needing a separate backend apply to **static-only** hosting; the new root `api/` function supplies the backend on Vercel. Personal browser-local records remain browser-local.
 
 ---
 
-# Fridgeful — main app, Camera Companion, and shared server
+# Refridge — main app, Camera Companion, and shared server
 
 A deployable React PWA project implementing the supplied Plans.pdf revision. Keep the project directory together: both apps use the shared nutrition and inventory rules.
 
@@ -28,8 +28,8 @@ On a computer, open `http://localhost:8787/`. The companion is at `http://localh
 To enable automatic image analysis, put your provider key in the root `.env`:
 
 ```dotenv
-OPENAI_API_KEY=your-server-side-key
-VISION_MODEL=gpt-4.1-mini
+GEMINI_API_KEY=your-server-side-key
+VISION_MODEL=gemini-2.5-flash
 ```
 
 Restart the server after changing environment variables. Never use a `VITE_` prefix for a secret. Provider usage requires your own account, access, and billing. Without a key, inventory/planning/social tools and manual camera review work; the app does not fabricate automatic recognition.
@@ -105,3 +105,11 @@ npm run build
 Development runs the API on 8787, main frontend on 5173, and camera frontend on 5174. The main dev frontend proxies `/camera/` and `/api/`. Root `.env` is loaded. Existing same-origin/allowlist fixes are retained; see [origin troubleshooting](docs/DEPLOYMENT.md#fix-this-app-origin-is-not-allowed).
 
 Automated tests cover nutrient references, restrictions, learned stock, period boundaries, transactional inventory, provider request format/failure handling, two-camera analysis, authorisation, sharing, invitations and trades. The vision provider was tested with deterministic stubs; no paid key or two physical camera phones were available for live accuracy tests. See [validation](docs/VALIDATION.md), [implemented requirements](docs/FEATURES.md), and [data sources](docs/SOURCES.md).
+
+## Camera roles
+
+Pair exactly one **Top Camera** and one **Side Camera** using the role selector in Camera Companion. Top Camera is used only for food identification; Side Camera is used only for food volume/amount and changes in amount. Automatic analysis requires both roles in both the reference scene and the new capture. Uncertain matches or amounts require manual review; uncalibrated images do not provide reliable grams.
+
+For cameras paired with older generic names, remove and pair them again with the correct role, then capture a new reference scene.
+
+Existing browser storage keys, the `.fridgeful-data/` directory, and the `fridgeful-data` Docker volume retain their original names for compatibility, so the Refridge rename preserves saved profiles, inventory, and camera pairings.

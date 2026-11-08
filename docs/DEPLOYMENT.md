@@ -90,7 +90,7 @@ If a reverse proxy replaces Host with an internal backend hostname, configure th
 
 ## Automatic recognition and shared friends
 
-Set `OPENAI_API_KEY` and optionally `VISION_MODEL` on the Node host, then restart. Docker Compose forwards those variables from the root `.env`; it also forwards explicit origin/proxy settings. No key is needed for manual review or friend sharing. Never bake the key into `dist/`.
+Set `GEMINI_API_KEY` and optionally `VISION_MODEL` on the Node host, then restart. Docker Compose forwards those variables from the root `.env`; it also forwards explicit origin/proxy settings. No key is needed for manual review or friend sharing. Never bake the key into `dist/`.
 
 Enable automatic analysis with image-processing consent in Paired cameras. The first complete capture sets the scene reference. Container reference photos and context go to the configured provider. Paid provider access and billing are your responsibility; live provider accuracy was not validated in this build.
 

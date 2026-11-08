@@ -9,7 +9,7 @@ Automated Node tests cover:
 - Monday weekly boundaries across month/year changes, daily/monthly buckets, and reward deduplication.
 - Automatic transactions: tracked whole removals, density-based remaining fill, occupied containers, low confidence, unknown mass, invalid IDs and concurrent changes.
 - Baseline creation, paired-angle analysis once, context acknowledgements, uncertain-event review and no unattended paid retries.
-- Vision request image format, strict schema, container photos, `store:false` and error handling using deterministic stubs.
+- Vision request image format, Gemini JSON schema, container photos, server-side key authentication and error handling using deterministic stubs.
 - Owner/camera authorization, pairing expiry, private photo access, immutable uploads, grouping, revocation, deletion and persistent sessions.
 - Exact origin allowlists, localhost/LAN development and explicitly trusted proxy behavior.
 - Mutual friend invitations, limited friend feeds, shared awards, recipient-only trade approval, pause/disconnect and no automatic stock transfer.

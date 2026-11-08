@@ -43,8 +43,8 @@ Official index: https://www.canada.ca/en/health-canada/services/food-guide/eatin
 
 ## Vision API
 
-Official request format and image inputs: https://developers.openai.com/api/docs/guides/images-vision
+Official request format and image inputs: https://ai.google.dev/gemini-api/docs/image-understanding
 
-Structured output guides: https://developers.openai.com/api/docs/guides/structured-outputs
+Structured output guides: https://ai.google.dev/gemini-api/docs/structured-output
 
 Model responses propose food IDs and changes. The server resolves measured nutrition from CNF instead of accepting model-generated nutrient numbers. No paid-provider call was made during validation because no key was configured.

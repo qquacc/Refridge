@@ -1,7 +1,7 @@
 {
   "id": "/camera/",
-  "name": "Fridgeful Camera Companion",
-  "short_name": "Fridgeful Cam",
+  "name": "Refridge Camera Companion",
+  "short_name": "Refridge Cam",
   "start_url": "/camera/",
   "scope": "/camera/",
   "display": "standalone",

@@ -1,4 +1,4 @@
-# Fridgeful main app
+# Refridge main app
 
 This app belongs to the root npm workspace. Keep `packages/shared/` and the backend with it. Run installation/build/development from the project root; see `../../README.md` and `../../docs/DEPLOYMENT.md`.
 

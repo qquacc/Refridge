@@ -368,7 +368,7 @@ export function createApp({
         findAuth(state, req, "owner");
         return send({
           keyConfigured: automation.keyConfigured(),
-          model: process.env.VISION_MODEL || "gpt-4.1-mini",
+          model: process.env.VISION_MODEL || "gemini-2.5-flash",
           nutrientSource: "Health Canada CNF 2015",
         });
       }
@@ -421,7 +421,7 @@ export function createApp({
               demand(
                 automation.keyConfigured(),
                 409,
-                "Add OPENAI_API_KEY to the server environment and restart before enabling automatic recognition.",
+                "Add GEMINI_API_KEY to the server environment and restart before enabling automatic recognition.",
               );
               demand(
                 input.consent === true,
@@ -511,12 +511,19 @@ export function createApp({
             409,
             "Two cameras are already paired. Remove one before pairing another.",
           );
+          demand(
+            ["Top Camera", "Side Camera"].includes(input.name),
+            400,
+            "Choose Top Camera or Side Camera.",
+          );
+          demand(
+            !s.cameras.some((c) => !c.revoked && c.name === input.name),
+            409,
+            input.name + " is already paired. Choose the other role or remove that camera first.",
+          );
           const c = {
             id: randomUUID(),
-            name:
-              String(input.name || "Camera")
-                .trim()
-                .slice(0, 50) || "Camera",
+            name: input.name,
             tokenHash: hash(token),
             lastSeen: now(),
             ready: false,
@@ -873,7 +880,7 @@ if (
     : http.createServer(app.handler);
   server.listen(port, "0.0.0.0", () =>
     console.log(
-      `Fridgeful server: ${tls ? "https" : "http"}://localhost:${port} (camera companion: /camera/)`,
+      `Refridge server: ${tls ? "https" : "http"}://localhost:${port} (camera companion: /camera/)`,
     ),
   );
 }

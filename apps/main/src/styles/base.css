@@ -119,18 +119,16 @@ small {
 }
 .brand-dot {
   color: #94ae74;
-  margin-left: -8px;
+  margin-left: 0;
 }
 .brand-icon {
-  display: grid;
-  place-items: center;
-  background: var(--green);
-  color: #f4f7e6;
-  width: 37px;
-  height: 41px;
-  border-radius: 11px;
-  transform: rotate(-4deg);
+  display: block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 44px;
+  object-fit: contain;
 }
+
 .workspace {
   display: flex;
   align-items: center;

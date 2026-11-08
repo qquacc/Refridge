@@ -53,7 +53,7 @@ test("Mongo-backed two-camera capture survives another app instance with private
   const x = await setup(t, { store: a, images: a.images });
   const o = await x.owner(),
     c1 = await x.pair(o),
-    c2 = await x.pair(o, "Second");
+    c2 = await x.pair(o, "Side Camera");
   await x.ready(c1);
   await x.ready(c2);
   const e = (
@@ -186,6 +186,7 @@ test("database leases prevent simultaneous image analysis on separate function i
       id: "s",
       automation: { enabled: true },
       baseline: pictures,
+      cameras: [{ id: "one", name: "Top Camera" }, { id: "two", name: "Side Camera" }],
       context: { inventory: [], containers: [], revision: 1 },
       events: [
         {

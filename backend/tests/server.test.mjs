@@ -48,7 +48,7 @@ async function setup(t, options = {}) {
       })
     ).data;
   }
-  async function pair(owner, name = "Camera 1") {
+  async function pair(owner, name = "Top Camera") {
     const code = (
       await request("/api/pairing", { token: owner.ownerToken, method: "POST" })
     ).data;
@@ -122,7 +122,7 @@ test("two-camera limit and readiness are enforced", async (t) => {
   const x = await setup(t),
     o = await x.owner(),
     a = await x.pair(o),
-    b = await x.pair(o, "Camera 2");
+    b = await x.pair(o, "Side Camera");
   assert.equal(
     (await x.request("/api/pairing", { method: "POST", token: o.ownerToken }))
       .status,
@@ -151,7 +151,7 @@ test("two uploads group into one event, fetch is private, and duplicate upload i
   const x = await setup(t),
     o = await x.owner(),
     a = await x.pair(o),
-    b = await x.pair(o, "Camera 2");
+    b = await x.pair(o, "Side Camera");
   await x.ready(a);
   await x.ready(b);
   const e = (
@@ -296,7 +296,7 @@ test("motion from both cameras within grouping window produces one event", async
   const x = await setup(t),
     o = await x.owner(),
     a = await x.pair(o),
-    b = await x.pair(o);
+    b = await x.pair(o, "Side Camera");
   await x.ready(a);
   await x.ready(b);
   const first = (
@@ -450,7 +450,7 @@ test("a newly ready second camera joins the existing motion event", async (t) =>
   const x = await setup(t),
     o = await x.owner(),
     a = await x.pair(o),
-    b = await x.pair(o);
+    b = await x.pair(o, "Side Camera");
   await x.ready(a);
   const first = (
     await x.request("/api/camera/event", {
@@ -553,4 +553,16 @@ test("allowlisted domain does not authorize lookalike domains or other ports", a
       (await x.request("/api/health", { headers: { Origin: origin } })).status,
       403,
     );
+});
+
+test("pairing requires a unique Top Camera or Side Camera and keeps the code usable after rejection", async (t) => {
+  const x = await setup(t), o = await x.owner();
+  await x.pair(o, "Top Camera");
+  const { data: pairing } = await x.request("/api/pairing", { token: o.ownerToken, method: "POST" });
+  for (const [name, status] of [["Other", 400], ["Top Camera", 409]]) {
+    assert.equal((await x.request("/api/pair", { method: "POST", body: { code: pairing.code, name } })).status, status);
+  }
+  const paired = await x.request("/api/pair", { method: "POST", body: { code: pairing.code, name: "Side Camera" } });
+  assert.equal(paired.status, 201);
+  assert.equal(paired.data.cameraName, "Side Camera");
 });

@@ -1,11 +1,9 @@
 services:
-  fridgeful:
+  refridge:
     build: .
     environment:
-      MONGODB_URI: ${MONGODB_URI:-}
-      MONGODB_DB: ${MONGODB_DB:-fridgeful}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      VISION_MODEL: ${VISION_MODEL:-gpt-4.1-mini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      VISION_MODEL: ${VISION_MODEL:-gemini-2.5-flash}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
       TRUST_PROXY: ${TRUST_PROXY:-false}

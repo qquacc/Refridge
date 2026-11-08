@@ -49,7 +49,7 @@ export async function setup(t, options = {}) {
       })
     ).data;
   }
-  async function pair(owner, name = "Camera 1") {
+  async function pair(owner, name = "Top Camera") {
     const code = (
       await request("/api/pairing", { token: owner.ownerToken, method: "POST" })
     ).data;

@@ -193,13 +193,27 @@ export default function App() {
       </a>
       <aside className="sidebar">
         <button className="brand brand-button" onClick={() => navigate("home")}>
-          <svg viewBox="0 0 36 40" width="31" height="36" aria-hidden="true">
-            <path fill="currentColor" d="M2 2h30v36H2z" />
-            <path fill="#f6f6ef" d="M8 8h18v5H13v6h11v5H13v9H8z" />
-            <path fill="#d2ff5a" d="m22 2 10 10V2z" />
+          <svg
+            className="brand-icon"
+            viewBox="0 0 80 88"
+            width="40"
+            height="44"
+            fill="none"
+            aria-hidden="true"
+          >
+            <g transform="rotate(-4 40 44)">
+              <rect x="3" y="3" width="74" height="82" rx="23" fill="#285c43" />
+              <path
+                d="M25 25h29v38H25zM25 40h29M31 30v6M31 46v9"
+                stroke="#f4f7e6"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
           <span>
-            fridgeful<span className="brand-dot">.</span>
+            Refridge<span className="brand-dot">.</span>
           </span>
         </button>
         <button className="workspace" onClick={() => navigate("profile")}>

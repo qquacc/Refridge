@@ -13,7 +13,8 @@ function CameraApp() {
     () => new URLSearchParams(location.search).get("pair") || "",
   );
   const [name, setName] = useState(
-    () => readSaved(KEY)?.cameraName || "Camera 1",
+    () => ["Top Camera", "Side Camera"].includes(readSaved(KEY)?.cameraName)
+      ? readSaved(KEY).cameraName : "Top Camera",
   );
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Ready to pair");
@@ -278,8 +279,8 @@ function CameraApp() {
     <div className="camera-app">
       <header>
         <a href="/" className="logo">
-          <img src="/camera/brand.svg" alt="" width="30" height="30" />
-          fridgeful<span className="logo-dot">.</span>
+          <img src="/camera/fridge-mark.svg" alt="" width="40" height="44" />
+          Refridge<span className="logo-dot">.</span>
         </a>
         <span className="app-tag">CAMERA COMPANION</span>
       </header>
@@ -293,8 +294,8 @@ function CameraApp() {
           </h1>
           <p>
             {device
-              ? "Keep this phone in position. Fridgeful brings both views together."
-              : "Turn this phone into a paired camera for your main Fridgeful app."}
+              ? "Keep this phone in position. Refridge brings both views together."
+              : "Turn this phone into a paired camera for your main Refridge app."}
           </p>
         </div>
         {error && (
@@ -322,14 +323,12 @@ function CameraApp() {
             </div>
             <form onSubmit={pair}>
               <label>
-                Camera name
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  maxLength={50}
-                  placeholder="Camera 1 · left view"
-                />
+                Camera role
+                <select value={name} onChange={(e) => setName(e.target.value)} required>
+                  <option value="Top Camera">Top Camera</option>
+                  <option value="Side Camera">Side Camera</option>
+                </select>
+                <small>Top Camera identifies food. Side Camera measures volume and amount.</small>
               </label>
               <label>
                 Six-character pairing code
@@ -496,7 +495,7 @@ function CameraApp() {
           <p>
             Uses Wi-Fi / HTTPS image uploads. No Bluetooth connection is
             required. On iPhone, Share → Add to Home Screen installs this
-            companion separately from Fridgeful.
+            companion separately from Refridge.
           </p>
         </section>
       </main>

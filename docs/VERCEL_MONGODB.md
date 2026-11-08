@@ -1,4 +1,4 @@
-# Deploy Fridgeful on Vercel + MongoDB Atlas
+# Deploy Refridge on Vercel + MongoDB Atlas
 
 Both browser apps and the API run at one Vercel HTTPS address. MongoDB holds server records and private JPEGs. No persistent host disk, Mac tunnel, native app, Blob account or separate backend host is needed.
 
@@ -40,8 +40,8 @@ Add these to the project before deployment:
 | --- | --- |
 | `MONGODB_URI` | Your private Atlas connection string |
 | `MONGODB_DB` | `fridgeful` (or your chosen database name) |
-| `OPENAI_API_KEY` | Optional for pairing/manual review; required for automatic image analysis |
-| `VISION_MODEL` | `gpt-4.1-mini` unless you select another compatible vision model |
+| `GEMINI_API_KEY` | Optional for pairing/manual review; required for automatic image analysis |
+| `VISION_MODEL` | `gemini-2.5-flash` unless you select another compatible vision model |
 | `VITE_CAMERA_API_URL` | Leave unset/blank for this same-origin deployment |
 
 Do **not** give database/provider secrets a `VITE_` prefix. Redeploy after editing environment variables.

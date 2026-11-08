@@ -79,7 +79,7 @@ header {
   transform: rotate(-5deg);
 }
 .logo .logo-dot {
-  color: #9bb97c;
+  color: #94ae74;
   margin-left: -8px;
 }
 .app-tag {
@@ -571,8 +571,9 @@ select,
   border-radius: 0 !important;
 }
 .logo img {
-  vertical-align: middle;
-  margin-right: 8px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 .logo > span:first-child {
   border-radius: 0;
@@ -591,3 +592,6 @@ button:not(:disabled):hover {
     transform: none !important;
   }
 }
+
+/* Camera role uses the same form styling as the pairing code. */
+select { font: inherit; color: inherit; background: #fff; border: 1px solid #d5ddcf; padding: 12px; width: 100%; }

@@ -188,7 +188,7 @@ export default function FoodModal({
         ref={ref}
       >
         <div className="modal-header">
-          <span className="eyebrow">FRIDGEFUL · YOUR EVERYDAY COMPANION</span>
+          <span className="eyebrow">REFRIDGE · YOUR EVERYDAY COMPANION</span>
           <button
             className="icon-btn"
             aria-label="Close dialog"
@@ -488,7 +488,7 @@ export default function FoodModal({
         {model.type === "install" && (
           <>
             <p className="modal-intro">
-              Keep Fridgeful on your iPhone Home Screen for a more app-like
+              Keep Refridge on your iPhone Home Screen for a more app-like
               experience.
             </p>
             <ol className="install-steps">
@@ -583,7 +583,7 @@ export default function FoodModal({
                     new Blob([JSON.stringify(state, null, 2)], {
                       type: "application/json",
                     }),
-                    "fridgeful-backup.json",
+                    "refridge-backup.json",
                   )
                 }
               >

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Fridgeful — Your everyday food companion",
-  "short_name": "Fridgeful",
+  "name": "Refridge — Your everyday food companion",
+  "short_name": "Refridge",
   "description": "Keep track of your fridge, find your next meal, and shop a little smarter.",
   "start_url": "/",
   "scope": "/",

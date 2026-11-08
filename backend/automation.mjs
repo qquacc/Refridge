@@ -9,7 +9,7 @@ export function createAutomation({
   store,
   images,
   vision = analyzeWithVision,
-  keyConfigured = () => !!process.env.OPENAI_API_KEY,
+  keyConfigured = () => !!process.env.GEMINI_API_KEY,
 }) {
   const running = new Set();
   async function processEvent(sessionId, eventId, { force = false } = {}) {
@@ -100,6 +100,12 @@ export function createAutomation({
         });
         return;
       }
+      // Do not assign roles to existing generic cameras by guessing their placement.
+      for (const images of [s.baseline, event.images]) {
+        const names = images.map((p) => s.cameras.find((c) => c.id === p.cameraId)?.name);
+        if (names.length !== 2 || !names.includes("Top Camera") || !names.includes("Side Camera"))
+          throw Error("Pair one Top Camera and one Side Camera, then save a new reference scene. Remove and re-pair cameras with old names.");
+      }
       const revision = s.context.revision || 0;
       await store.mutate((state) => {
         const e = state.sessions[sessionId]?.events.find(
@@ -115,6 +121,7 @@ export function createAutomation({
         Promise.all(
           list.map(async (p) => ({
             cameraId: p.cameraId,
+            cameraName: s.cameras.find((c) => c.id === p.cameraId)?.name,
             bytes: await images.get(p.id),
           })),
         );
@@ -176,7 +183,7 @@ export function createAutomation({
           state: "applied",
           summary: analysis.summary,
           operations: plan.operations,
-          model: process.env.VISION_MODEL || "gpt-4.1-mini",
+          model: process.env.VISION_MODEL || "gemini-2.5-flash",
           source: "Health Canada CNF 2015",
         };
         e.status = plan.operations.length ? "confirmed" : "ignored";
