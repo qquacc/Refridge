@@ -338,7 +338,7 @@ export function putFood(s, item) {
   if (!Number.isFinite(item.grams) || item.grams <= 0)
     throw Error("Enter a positive food weight.");
   const field = item.fridgeId === MY_FRIDGE ? "items" : "friendItems";
-  return { ...s, [field]: [...s[field], { ...item, id: uid() }] };
+  return { ...s, [field]: [...s[field], { ...item, id: item.cameraEventId ? "camera-" + item.cameraEventId : uid() }] };
 }
 export function requestTrade(
   s,

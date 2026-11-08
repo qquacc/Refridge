@@ -37,8 +37,8 @@ export function applyCameraEvent(state, event) {
       logs: [...state.logs, ...extraLogs],
     };
   } else if (input.direction === "in") {
-    const food = catalog.find((c) => c.name === input.foodName);
-    if (!food) throw Error("Choose a food from the catalog.");
+    const food = input.prediction ? input.food : catalog.find((c) => c.name === input.foodName);
+    if (!food) throw Error("Confirm the predicted food on the server, or choose a food from the catalog.");
     next = putFood(state, {
       ...food,
       grams: input.grams,

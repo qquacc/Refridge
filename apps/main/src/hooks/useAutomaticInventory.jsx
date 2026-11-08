@@ -22,7 +22,7 @@ export function useAutomaticInventory(state, setState) {
           let next = latest.current;
           for (const event of [...session.events].reverse())
             if (
-              event.confirmation?.direction === "automation" &&
+              (event.confirmation?.direction === "automation" || event.confirmation?.prediction) &&
               !next.appliedCameraEventIds?.includes(event.id)
             )
               next = applyCameraEvent(next, event);

@@ -1,3 +1,4 @@
+import { confirmedPredictedFood, enrichFoodPredictions } from "./predictions.mjs";
 import { FileImages } from "./images.mjs";
 import {
   socialView,
@@ -169,7 +170,7 @@ function validateConfirmation(value) {
   );
   if (value.direction === "in") {
     demand(
-      typeof value.foodName === "string" && value.foodName.length <= 80,
+      typeof value.foodName === "string" && value.foodName.trim().length > 0 && value.foodName.length <= 80,
       400,
       "Choose a food.",
     );
@@ -188,10 +189,26 @@ function validateConfirmation(value) {
       400,
       "Choose an expiry date.",
     );
+    let prediction;
+    if (value.prediction !== undefined) {
+      const p = value.prediction;
+      demand(p && Number.isInteger(p.index) && p.index >= 0 && p.index < 4 && ["reference", "ingredients"].includes(p.method), 400, "Choose a valid prediction.");
+      demand(Array.isArray(p.ingredients) && p.ingredients.length <= 8, 400, "Review up to eight ingredients.");
+      prediction = {
+        index: p.index, method: p.method,
+        referenceId: typeof p.referenceId === "string" ? p.referenceId.slice(0, 30) : "",
+        ingredients: p.ingredients.map((i) => {
+          demand(i && typeof i.name === "string" && i.name.trim().length > 0 && i.name.length <= 100, 400, "Enter an ingredient name.");
+          demand(i.estimatedPercent === null || (Number.isFinite(i.estimatedPercent) && i.estimatedPercent > 0 && i.estimatedPercent <= 100), 400, "Enter valid ingredient percentages.");
+          return { name: i.name.trim(), estimatedPercent: i.estimatedPercent, cnfId: typeof i.cnfId === "string" ? i.cnfId.slice(0, 30) : "" };
+        }),
+      };
+    }
     return {
       direction: "in",
       grams,
-      foodName: value.foodName,
+      foodName: value.foodName.trim(),
+      ...(prediction ? { prediction } : {}),
       fridgeId: value.fridgeId,
       ownerId: value.ownerId,
       expires: value.expires,
@@ -542,7 +559,18 @@ export function createApp({
         return send(result, 201);
       }
       if (p === "/api/session" && method === "GET") {
-        const state = await store.read();
+        let state = await store.read();
+        const { session: existing } = findAuth(state, req, "owner");
+        if (existing.events.some((e) => e.analysis?.raw?.changes?.some((c) => c.foodName && !c.draftFood))) {
+          // Upgrade saved predictions locally; no second Gemini request is needed.
+          await store.mutate(async (state) => {
+            const { session } = findAuth(state, req, "owner");
+            for (const event of session.events)
+              if (event.analysis?.raw?.changes?.some((c) => c.foodName && !c.draftFood))
+                await enrichFoodPredictions(event.analysis.raw);
+          });
+          state = await store.read();
+        }
         const session = findAuth(state, req, "owner").session;
         kickAutomation(session);
         return send(safeSession(session, now()));
@@ -729,13 +757,13 @@ export function createApp({
       match = p.match(/^\/api\/events\/([a-f0-9-]+)\/confirm$/);
       if (match && method === "POST") {
         const confirmation = validateConfirmation(await jsonBody(req));
-        const result = await store.mutate((state) => {
+        const result = await store.mutate(async (state) => {
           const { session: s } = findAuth(state, req, "owner");
           const e = s.events.find((e) => e.id === match[1]);
           demand(e, 404, "Event not found.");
           if (e.status === "confirmed" || e.status === "ignored") {
             demand(
-              JSON.stringify(e.confirmation) === JSON.stringify(confirmation),
+              JSON.stringify(Object.fromEntries(Object.entries(e.confirmation).filter(([key]) => key !== "food"))) === JSON.stringify(confirmation),
               409,
               "Event already confirmed with different details.",
             );
@@ -746,6 +774,15 @@ export function createApp({
             409,
             "Wait for a camera image before confirming.",
           );
+          if (confirmation.prediction) {
+            demand(confirmation.fridgeId === s.fridgeId, 400, "Save this prediction to the connected fridge.");
+            try { confirmation.food = await confirmedPredictedFood(e, confirmation); }
+            catch (error) { throw new ApiError(400, error.message); }
+            if (s.context?.inventory) {
+              s.context.inventory.push({ ...confirmation.food, id: "camera-" + e.id, grams: confirmation.grams, fridgeId: confirmation.fridgeId, ownerId: confirmation.ownerId, containerId: confirmation.containerId, expires: confirmation.expires, cameraEventId: e.id });
+              s.context.revision = (s.context.revision || 0) + 1;
+            }
+          }
           e.confirmation = confirmation;
           e.status =
             confirmation.direction === "ignore" ? "ignored" : "confirmed";

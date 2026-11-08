@@ -1,3 +1,4 @@
+import { buildPredictedFood } from "../../../../packages/shared/predicted-food.mjs";
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
 import {
@@ -56,7 +57,31 @@ function CaptureEvent({
   notify,
   refresh,
 }) {
+  const changes = event.analysis?.raw?.changes || [];
+  const predictionSignature = JSON.stringify(changes);
   const [direction, setDirection] = useState("in");
+  const [predictionIndex, setPredictionIndex] = useState(-1);
+  const [ingredients, setIngredients] = useState([]);
+  const [referenceId, setReferenceId] = useState("");
+  const [draftGrams, setDraftGrams] = useState("100");
+  const [nutritionMethod, setNutritionMethod] = useState("reference");
+  const prediction = predictionIndex >= 0 ? changes[predictionIndex] : null;
+  useEffect(() => {
+    setPredictionIndex(changes.findIndex((c) => c.foodName));
+  }, [predictionSignature]);
+  useEffect(() => {
+    if (!prediction) return;
+    setIngredients((prediction.ingredients || []).map((i) => ({ ...i })));
+    setReferenceId(prediction.nutritionReferences?.[0]?.cnfId || "");
+    setNutritionMethod("reference");
+    setDraftGrams(String(prediction.grams > 0 ? prediction.grams : 100));
+    setDirection(prediction.direction === "out" ? "out" : "in");
+  }, [predictionIndex, predictionSignature]);
+  let draftFood = null, draftError = "";
+  if (prediction) {
+    try { draftFood = buildPredictedFood({ name: prediction.foodName, ingredients, reference: prediction.nutritionReferences?.find((f) => f.cnfId === referenceId), method: nutritionMethod }); }
+    catch (error) { draftError = error.message; }
+  }
   const [fridgeId, setFridgeId] = useState(session.fridgeId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -86,6 +111,10 @@ function CaptureEvent({
             ownerId: String(f.get("ownerId")),
             expires: String(f.get("expires")),
             containerId: String(f.get("containerId") || ""),
+            ...(prediction ? { prediction: {
+              index: predictionIndex, method: nutritionMethod, referenceId,
+              ingredients: ingredients.map((i) => ({ name: i.name, estimatedPercent: i.estimatedPercent, cnfId: i.reference?.cnfId || "" })),
+            } } : {}),
           }
         : direction === "out"
           ? {
@@ -101,7 +130,7 @@ function CaptureEvent({
       applyCameraEvent(state, {
         ...event,
         status: direction === "ignore" ? "ignored" : "confirmed",
-        confirmation: details,
+        confirmation: prediction && direction === "in" ? { ...details, food: draftFood } : details,
       });
       const confirmed = await cameraApi(
         "/api/events/" + event.id + "/confirm",
@@ -166,7 +195,7 @@ function CaptureEvent({
       )}
       {event.analysis && (
         <div className="camera-analysis" role="status">
-          <strong>{event.analysis.state}</strong>
+          <strong>{event.analysis.state === "needs-review" && changes.some((c) => c.foodName) ? "Ready to review and add" : event.analysis.state}</strong>
           <p>{event.analysis.summary}</p>
           {event.analysis.raw?.changes?.filter((c) => c.foodName).map((c, i) => (
             <div key={i} className="notice">
@@ -217,8 +246,7 @@ function CaptureEvent({
       ) : !done ? (
         <form className="feature-form" onSubmit={confirm}>
           <p className="form-hint">
-            Both photos represent one event. Review food, ownership, movement,
-            and quantity when automatic analysis needs review.
+            Review the prefilled details below, then confirm to update your fridge. Estimated expiry dates and nutrition can be adjusted.
           </p>
           <Field label="What happened?">
             <select
@@ -233,12 +261,15 @@ function CaptureEvent({
           {direction === "in" && (
             <>
               <div className="form-grid">
-                <Field label="Confirm food">
-                  <select name="foodName">
-                    {catalog.map((c) => (
-                      <option key={c.name}>{c.name}</option>
-                    ))}
+                <Field label="Food to add">
+                  <select value={predictionIndex} onChange={(e) => setPredictionIndex(Number(e.target.value))}>
+                    <option value={-1}>Choose from the food catalog</option>
+                    {changes.map((c, i) => c.foodName ? <option key={i} value={i}>{c.foodName} · camera prediction</option> : null)}
                   </select>
+                </Field>
+                <Field label="Confirm food name">
+                  {prediction ? <input name="foodName" key={`name-${predictionIndex}-${predictionSignature}`} defaultValue={prediction.foodName} maxLength={80} required /> :
+                    <select name="foodName">{catalog.map((c) => <option key={c.name}>{c.name}</option>)}</select>}
                 </Field>
                 <Field label="Storage space">
                   <select
@@ -255,7 +286,7 @@ function CaptureEvent({
                   </select>
                 </Field>
                 <Field label="Food owner">
-                  <select name="ownerId" key={fridgeId}>
+                  <select name="ownerId" key={fridgeId} defaultValue={session.context?.defaultOwnerId || "me"}>
                     {fridge.members.map((id) => (
                       <option key={id} value={id}>
                         {id === "me"
@@ -267,7 +298,7 @@ function CaptureEvent({
                   </select>
                 </Field>
                 <Field
-                  label="Expiry date"
+                  label="Suggested expiry date · adjust for this food"
                   name="expires"
                   type="date"
                   required
@@ -275,7 +306,7 @@ function CaptureEvent({
                 />
               </div>
               <Field label="Reference container">
-                <select name="containerId" key={fridgeId}>
+                <select name="containerId" key={`${fridgeId}-${predictionIndex}`} defaultValue={prediction?.containerId || ""}>
                   <option value="">Original packaging / none</option>
                   {state.containers
                     .filter((c) => c.fridgeId === fridgeId)
@@ -288,6 +319,42 @@ function CaptureEvent({
               </Field>
             </>
           )}
+          {direction === "in" && prediction && <div className="notice">
+            <strong>Review estimated nutrition</strong>
+            <Field label="Nutrition calculation">
+              <select value={nutritionMethod} onChange={(e) => setNutritionMethod(e.target.value)}>
+                <option value="reference">Similar dish from Canadian nutrition data</option>
+                <option value="ingredients">Calculate from the estimated ingredients</option>
+              </select>
+            </Field>
+            {nutritionMethod === "reference" && <Field label="Approximate dish reference">
+              <select value={referenceId} onChange={(e) => setReferenceId(e.target.value)}>
+                <option value="">No match · keep nutrition unknown</option>
+                {(prediction.nutritionReferences || []).map((f) => <option key={f.cnfId} value={f.cnfId}>{f.name}</option>)}
+              </select>
+            </Field>}
+            {ingredients.map((ingredient, index) => <div className="form-grid" key={index}>
+              <Field label="Estimated ingredient"><input value={ingredient.name} maxLength={100} required onChange={(e) => setIngredients((all) => all.map((i, n) => n === index ? { ...i, name: e.target.value, reference: null } : i))} /></Field>
+              <Field label="Weight share (%)"><input type="number" min="0.1" max="100" step="0.1" value={ingredient.estimatedPercent ?? ""} onChange={(e) => setIngredients((all) => all.map((i, n) => n === index ? { ...i, estimatedPercent: e.target.value === "" ? null : Number(e.target.value) } : i))} /></Field>
+              <button type="button" className="text-btn" disabled={busy} onClick={async () => {
+                try {
+                  const matches = await cameraApi("/api/nutrition/search?q=" + encodeURIComponent(ingredient.name));
+                  setIngredients((all) => all.map((i, n) => n === index ? { ...i, references: matches, reference: matches[0] || null } : i));
+                  if (!matches.length) setError("No nutrition reference matched that ingredient. Try a simpler ingredient name, or leave its nutrition unknown.");
+                  else setError("");
+                } catch (error) { setError(error.message); }
+              }}>Find ingredient reference</button>
+              <Field label="Ingredient nutrition reference"><select value={ingredient.reference?.cnfId || ""} onChange={(e) => setIngredients((all) => all.map((i, n) => n === index ? { ...i, reference: i.references?.find((f) => f.cnfId === e.target.value) || null } : i))}>
+                <option value="">Unknown</option>
+                {(ingredient.references || (ingredient.reference ? [ingredient.reference] : [])).map((f) => <option key={f.cnfId} value={f.cnfId}>{f.name}</option>)}
+              </select></Field>
+            </div>)}
+            <p>Ingredient shares: {Math.round(ingredients.reduce((n, i) => n + (i.estimatedPercent || 0), 0) * 10) / 10}%. Ingredient calculation requires all matches and a total of 100%.</p>
+            {draftError && <p role="alert">{draftError}</p>}
+            {draftFood && <p>Per 100 g: {[["kcal", "kcal"], ["protein", "g protein"], ["carbs", "g carbs"], ["fat", "g fat"], ["fiber", "g fibre"]].map(([key, unit]) => `${Number.isFinite(draftFood[key]) ? Math.round(draftFood[key] * 10) / 10 : "unknown"} ${unit}`).join(" · ")}</p>}
+            {draftFood && Number(draftGrams) > 0 && <p>For {draftGrams} g: {[["kcal", "kcal"], ["protein", "g protein"], ["carbs", "g carbs"], ["fat", "g fat"]].map(([key, unit]) => `${Number.isFinite(draftFood[key]) ? Math.round(draftFood[key] * Number(draftGrams) / 100 * 10) / 10 : "unknown"} ${unit}`).join(" · ")}</p>}
+            <p>These are estimates. Unknown nutrients stay unknown. Confirming adds one dish to your fridge; its ingredient list does not create extra stock.</p>
+          </div>}
           {direction === "out" && (
             <>
               <Field label="Food leaving">
@@ -318,7 +385,8 @@ function CaptureEvent({
               max="100000"
               step="0.1"
               required
-              defaultValue="100"
+              value={draftGrams}
+              onChange={(e) => setDraftGrams(e.target.value)}
             />
           )}
           {event.images.length < event.expectedCameraIds.length &&
@@ -335,14 +403,14 @@ function CaptureEvent({
             )}
           <button
             className="btn primary"
-            disabled={busy || (direction !== "ignore" && !ready)}
+            disabled={busy || (direction !== "ignore" && !ready) || (direction === "in" && !!prediction && !!draftError)}
             type="submit"
           >
             {busy
               ? "Saving…"
               : direction === "ignore"
                 ? "Ignore event"
-                : "Confirm and update inventory"}
+                : prediction && direction === "in" ? "Confirm and add dish to my fridge" : "Confirm and update inventory"}
           </button>
         </form>
       ) : (
