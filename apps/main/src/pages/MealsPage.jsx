@@ -1,3 +1,4 @@
+import { recipeCosts, cad } from "../lib/costs.mjs";
 import React, { useState } from "react";
 import { Panel, Field } from "../components/FeatureUI.jsx";
 import { allowedRecipes, activeInventory } from "../lib/planning.mjs";
@@ -117,6 +118,8 @@ export default function MealsPage({
             pool,
           );
           const addedToGrocery = missing.length > 0 && missing.every(([name]) => state.groceries.some((item) => !item.checked && item.name.toLowerCase() === name.toLowerCase()));
+          const cost = recipeCosts(state, r, pool, portions);
+          const mealBudget = Number(state.profile.budgetCad) / (7 * Number(state.profile.mealsPerDay || 3));
           const n = recipeNutrition(r);
           return (
             <article className="planned-recipe" key={r.id}>
@@ -142,6 +145,7 @@ export default function MealsPage({
                   : "All ingredients ready"}{" "}
                 · {portions} serving{portions > 1 ? "s" : ""}
               </div>
+              <div className="recipe-price"><strong>{cost.complete ? `${cad(cost.perServing)} / serving` : "Recipe cost needs more prices"}</strong><small>{cost.purchaseComplete ? `${cad(cost.checkout)} to buy missing packages` : `${cad(cost.checkout)} known shopping cost · ${cost.missingPurchasePrices} missing price(s)`}</small>{cost.complete && mealBudget > 0 && <small>{cost.perServing <= mealBudget ? "Within" : "Above"} your {cad(mealBudget)} per-meal budget</small>}</div>
               <details>
                 <summary>Ingredients & method</summary>
                 <ul>

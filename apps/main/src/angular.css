@@ -1026,14 +1026,14 @@ button:not(:disabled):hover,
 .settings-import p { font-size: 12px; line-height: 1.6; color: #62705d; }
 
 /* The homepage mounts only after this welcome has completely faded. */
-.welcome-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); padding: 24px; z-index: 300; animation: welcome-splash-out 1.75s ease-in-out both; }
-.welcome-splash-content { text-align: center; animation: welcome-brand-in .35s ease-out both; }
+.welcome-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); padding: 24px; z-index: 300; animation: welcome-splash-out 2.25s ease-in-out both; }
+.welcome-splash-content { text-align: center; animation: welcome-brand-in .8s ease-out both; }
 .welcome-splash-brand { display: flex; align-items: center; justify-content: center; gap: 16px; color: #243e31; font-size: clamp(42px, 8vw, 68px); font-weight: 800; letter-spacing: -2.5px; }
 .welcome-splash-brand img { width: clamp(62px, 12vw, 88px); height: auto; }
 .welcome-splash-dot { color: #91ad72; }
 .welcome-splash-content p { margin: 20px 0 0; color: #6a7764; font-size: 14px; }
 @keyframes welcome-brand-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes welcome-splash-out { 0%, 50% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes welcome-splash-out { 0%, 79% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { .welcome-splash, .welcome-splash-content { animation: none; } }
 
 .weight-notification { position: relative; overflow: hidden; padding-bottom: 14px; flex-wrap: nowrap; gap: 12px; }
@@ -1056,3 +1056,46 @@ button:not(:disabled):hover,
 .incoming-message-preview { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 235px; font-size: 12px; }
 .incoming-message-dismiss { padding: 10px; background: transparent; color: #6b7765; }
 @media (prefers-reduced-motion: reduce) { .incoming-message-toast { animation: none; } }
+
+.smart-action-tip { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; margin: 14px 0 18px; background: #edf2e7; color: #35513b; border-radius: 12px !important; }
+.smart-action-tip > svg { flex-shrink: 0; margin-top: 2px; }
+.smart-action-tip strong { font-size: 12px; }
+.smart-action-tip p { font-size: 12px; line-height: 1.55; margin: 5px 0 0; color: #61715b; }
+
+.add-food-photo { display: grid; gap: 12px; margin: 18px 0; }
+.add-food-photo-preview { width: 100%; max-height: 180px; object-fit: contain; background: #f0f3eb; border-radius: 10px !important; }
+.add-food-photo .form-hint { margin: 0; }
+.food-entry-fields { display: contents; border: 0; padding: 0; margin: 0; min-width: 0; }
+
+.grocery-view-select { display: inline-flex; align-items: center; gap: 8px; }
+
+.shopping-budget { background: #edf2e7; padding: 16px; margin: 12px 0 18px; border-radius: 12px !important; }
+.shopping-budget p { margin: 7px 0; font-size: 13px; line-height: 1.5; }
+.shopping-budget small { color: #687760; font-size: 11px; }
+.food-price-form { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; gap: 12px; align-items: end; margin: 18px 0; }
+.recipe-price { display: grid; gap: 5px; color: #35593d; font-size: 12px; }
+.recipe-price small { color: #6b7864; font-size: 10px; }
+@media (max-width: 900px) { .food-price-form { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .food-price-form { grid-template-columns: 1fr; } }
+
+/* Keep connection methods and their actions clearly grouped. */
+.friend-sharing-panel > .button-row { margin: 18px 0 24px; }
+.friend-sharing-panel .friend-tag-form { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 20px 0 26px; }
+.friend-sharing-panel .friend-tag-form .field { flex: 1; min-width: 200px; }
+.friend-sharing-panel .field { gap: 9px; }
+.friend-sharing-panel .field input { padding-top: 12px; padding-bottom: 12px; }
+.friend-sharing-panel .friend-code-options { margin: 24px 0; gap: 28px; align-items: start; }
+.friend-sharing-panel .friend-code-options > form, .friend-sharing-panel .friend-code-options > div { display: flex; flex-direction: column; gap: 16px; padding: 12px 0; }
+.friend-sharing-panel .friend-code-options h3 { margin: 0; }
+.friend-sharing-panel .friend-code-options .btn { align-self: flex-start; }
+.friend-sharing-panel .fridge-row { padding-top: 18px; padding-bottom: 18px; gap: 16px; flex-wrap: wrap; }
+.friend-sharing-panel .fridge-row > .text-btn { padding: 8px 10px; }
+.friend-sharing-panel > .form-hint { margin-top: 24px; }
+
+.friend-sharing-panel .friend-code-options .friend-invite-label { font-size: 12px; line-height: 1.4; font-weight: 500; padding-bottom: 2px; }
+.friend-sharing-panel .friend-code-options > div > .btn { min-height: 43px; }
+.friend-sharing-panel .pair-code { margin: 0; }
+.friend-sharing-panel .pair-code .row-note { letter-spacing: normal; line-height: 1.4; font-size: 11px; margin-top: 6px; font-weight: 400; }
+.connected-fridges-heading { margin: 24px 0 8px; font-size: 14px; }
+
+.saved-food-prices { padding-top: 12px; }

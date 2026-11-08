@@ -26,3 +26,12 @@ test('meal endpoint requires account login, validates uploads, and never changes
   const response=await x.request('/api/meals/recognize',{method:'POST',headers:{Cookie:cookie},body});assert.equal(response.status,200);assert.equal(response.data.name,result.name);assert.equal(calls,1);
   assert.equal(JSON.stringify((await x.app.store.read()).accounts),before);
 });
+
+test('a recognized Pepsi can remains identifiable when size, nutrition and expiry are unreadable',async()=>{
+  const meal=await analyzeMealPhoto(jpg,{apiKey:'test',fetchImpl:async(_,options)=>{
+    const prompt=JSON.parse(options.body).contents[0].parts[0].text;
+    assert.match(prompt,/Missing expiry NEVER prevents identification/);
+    return reply({name:'Pepsi cola can',grams:null,nutrients:{kcal:null,protein:null,carbs:null,fat:null,fiber:null},confidence:.92,note:'Brand recognized; size and label are unreadable.'});
+  }});
+  assert.equal(meal.name,'Pepsi cola can');assert.equal(meal.grams,null);assert.equal(meal.nutrients.kcal,null);assert.equal(meal.estimated,true);
+});

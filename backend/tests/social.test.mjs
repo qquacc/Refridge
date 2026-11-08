@@ -213,3 +213,32 @@ test('friend chat persists both directions, validates prompts, and excludes othe
   assert.equal((await x.request('/api/social', { token: a.ownerToken })).data.messages.length, 0);
   assert.equal((await x.request('/api/social', { token: b.ownerToken })).data.messages.length, 0);
 });
+
+test('accounts connect by @tag without paired cameras and require recipient approval', async(t)=>{
+  const x=await setup(t);
+  async function person(username) {
+    const r=await fetch(x.base+'/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'friend-test-password'})});
+    assert.equal(r.status,201);const cookie=r.headers.get('set-cookie').split(';')[0];
+    const owner=(await x.request('/api/sessions',{method:'POST',headers:{Cookie:cookie},body:{fridgeName:username+"'s Fridge"}})).data;
+    const req=(path,body)=>x.request(path,{token:owner.ownerToken,headers:{Cookie:cookie},method:body?'POST':'GET',body});
+    await req('/api/social/profile',{enabled:true,name:username});
+    return {owner,req};
+  }
+  const a=await person('alice_tag'),b=await person('bob_tag'),c=await person('charlie_tag');
+  const sent=await a.req('/api/social/request-friend',{tag:'@BOB_TAG'});assert.equal(sent.status,200);
+  assert.equal((await a.req('/api/social')).data.friends.length,0);
+  assert.equal((await b.req('/api/social')).data.requests[0].id,sent.data.id);
+  assert.equal((await c.req('/api/social')).data.requests.length,0);
+  assert.equal((await c.req('/api/social/respond-friend',{requestId:sent.data.id,status:'accepted'})).status,400);
+  assert.equal((await a.req('/api/social/respond-friend',{requestId:sent.data.id,status:'accepted'})).status,400);
+  assert.equal((await a.req('/api/social/request-friend',{tag:'bob_tag'})).status,400);
+  assert.equal((await b.req('/api/social/respond-friend',{requestId:sent.data.id,status:'accepted'})).status,200);
+  assert.equal((await a.req('/api/social')).data.friends[0].id,b.owner.sessionId);
+  assert.equal((await b.req('/api/social')).data.friends[0].id,a.owner.sessionId);
+  assert.equal((await a.req('/api/social/messages',{toId:b.owner.sessionId,text:'Hello without cameras'})).status,200);
+  assert.equal((await a.req('/api/social/request-friend',{tag:'@alice_tag'})).status,400);
+  const declined=await c.req('/api/social/request-friend',{tag:'@alice_tag'});
+  assert.equal((await a.req('/api/social/respond-friend',{requestId:declined.data.id,status:'declined'})).status,200);
+  assert.equal((await c.req('/api/social')).data.friends.length,0);
+  const stored=await x.app.store.read();assert(Object.values(stored.sessions).every((s)=>s.cameras.length===0));
+});

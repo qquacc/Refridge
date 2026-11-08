@@ -1,3 +1,4 @@
+import SmartActionTip from "./SmartActionTip.jsx";
 import { photoDataUrl } from "../lib/photos.mjs";
 import { cameraApi } from "../../../../packages/shared/camera-client.mjs";
 import { importBackup } from "../lib/backup.mjs";
@@ -307,6 +308,7 @@ export default function FoodModal({
                 ? "Simulated hardware reading. Confirm why food left the container."
                 : "Removing food doesn’t always mean eating it. Tell us what changed."}
             </p>
+            {model.type === "consume" && <SmartActionTip>With paired cameras, Refridge can notice food leaving your fridge and suggest the amount removed. Confirm it was eaten to add it to your diary.</SmartActionTip>}
             {model.type === "sensor" ? (
               <label>
                 Container food
@@ -445,6 +447,7 @@ export default function FoodModal({
           })()}
         {model.type === "outside" && (
           <form onSubmit={submit}>
+            <SmartActionTip>Add a meal photo and tap “Recognize meal with AI” to fill in an estimated meal name and nutrition. Check the details, make any changes, then save.</SmartActionTip>
             <p className="modal-intro">
               Take a clear meal photo for a quick AI estimate, or enter the details manually. Review all estimates before saving.
             </p>

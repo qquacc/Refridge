@@ -4,6 +4,7 @@ import { socialAction } from "../hooks/useFriendFridges.jsx";
 export default function FriendSharing({ state, setState, navigate, notify }) {
   const [invite, setInvite] = useState(null),
     [code, setCode] = useState(""),
+    [tag, setTag] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function action(fn) {
@@ -20,8 +21,9 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
   const enabled = !!state.socialSettings?.enabled;
   return (
     <Panel
+      className="friend-sharing-panel"
       title="Connect friends & family"
-      subtitle="Invite someone you know, or enter their invitation code to connect your kitchens."
+      subtitle="Connect with a friend code or @username. No camera setup needed."
     >
       {error && (
         <p className="error" role="alert">
@@ -29,17 +31,15 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
         </p>
       )}
       <p className="body-copy">
-        Sharing lets accepted friends see food in your camera-connected fridge,
+        Sharing lets accepted friends see food in your shared fridge,
         your display name/photo, and challenge awards. Your weight, birthday,
         dietary notes, diary, and camera images stay outside this friend feed.
         Invitations are single-use and expire in 10 minutes.
       </p>
       <div className="button-row">
-        <button className="btn outline" onClick={() => navigate("cameras")}>
-          Server & camera session
-        </button>
+
         <button
-          className="btn primary"
+          className={"btn " + (enabled ? "outline" : "primary")}
           disabled={busy}
           onClick={() =>
             action(async () => {
@@ -64,27 +64,16 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
       </div>
       {enabled && (
         <>
-          <div className="feature-columns">
-            <div>
-              <h3>Invite someone</h3>
-              <button
-                className="btn outline"
-                disabled={busy}
-                onClick={() =>
-                  action(async () => setInvite(await socialAction("/invite")))
-                }
-              >
-                Create friend invitation
-              </button>
-              {invite && (
-                <p className="pair-code">
-                  {invite.code}
-                  <small className="row-note">
-                    Expires {new Date(invite.expiresAt).toLocaleTimeString()}
-                  </small>
-                </p>
-              )}
-            </div>
+          {state.ownTag && <p className="body-copy">Your tag: <strong>@{state.ownTag}</strong></p>}
+          <form className="feature-form inline-form friend-tag-form" onSubmit={(e) => { e.preventDefault(); action(async () => { await socialAction("/request-friend", { tag }); setTag(""); notify("Friend request sent — they can accept it in Kitchens"); }); }}>
+            <Field label="Add by @username" placeholder="@username" value={tag} onChange={(e) => setTag(e.target.value)} required maxLength={25} />
+            <button className="btn primary" disabled={busy}>Send friend request</button>
+          </form>
+          <div aria-label="Friend requests">{(state.friendRequests || []).filter((r) => r.status === "pending").map((r) => {
+            const incoming = r.toId === state.ownSessionId;
+            return <div className="fridge-row" key={r.id}><strong>{incoming ? r.fromName : r.toName}</strong><span>{incoming ? "Wants to connect" : "Request sent"}</span>{(incoming ? [["accepted", "Accept"], ["declined", "Decline"]] : [["cancelled", "Cancel request"]]).map(([status, label]) => <button key={status} className="text-btn" disabled={busy} onClick={() => action(async () => { await socialAction("/respond-friend", { requestId: r.id, status }); notify(status === "accepted" ? "Friend connected" : "Request updated"); })}>{label}</button>)}</div>;
+          })}</div>
+          <div className="feature-columns friend-code-options">
             <form
               className="feature-form"
               onSubmit={(e) => {
@@ -108,6 +97,26 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
                 Join friend
               </button>
             </form>
+            <div>
+              <h3 className="friend-invite-label">Invite someone</h3>
+              <button
+                className="btn outline"
+                disabled={busy}
+                onClick={() =>
+                  action(async () => setInvite(await socialAction("/invite")))
+                }
+              >
+                Create friend invitation
+              </button>
+              {invite && (
+                <p className="pair-code">
+                  {invite.code}
+                  <small className="row-note">
+                    Expires {new Date(invite.expiresAt).toLocaleTimeString()}
+                  </small>
+                </p>
+              )}
+            </div>
           </div>
           {state.fridges
             .filter((f) => f.remote)

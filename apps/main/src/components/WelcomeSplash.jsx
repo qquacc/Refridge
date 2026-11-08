@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 export default function WelcomeSplash({ onDone }) {
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timer = setTimeout(onDone, reduced ? 700 : 1800);
+    const timer = setTimeout(onDone, reduced ? 700 : 2300);
     return () => clearTimeout(timer);
   }, [onDone]);
   return <main className="welcome-splash" aria-label="Welcome to Refridge" onAnimationEnd={(e) => { if (e.target === e.currentTarget && e.animationName === 'welcome-splash-out') onDone(); }}>

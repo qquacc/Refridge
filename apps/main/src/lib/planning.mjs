@@ -1,3 +1,4 @@
+import { recipeCosts } from "./costs.mjs";
 import { calculateGoalTargets } from "../../../../packages/shared/goal-targets.mjs";
 import { catalog, today, daysFromNow, uid } from "../data/food.mjs";
 import { recipeFits } from "../../../../packages/shared/dietary.mjs";
@@ -48,7 +49,15 @@ export function allowedRecipes(s, ids = [s.activeFridgeId]) {
   };
   return mealRecipes
     .filter((r) => recipeFits(r, s.profile, catalog).safe)
-    .sort((a, b) => score(b) - score(a));
+     .sort((a, b) => {
+      if (s.profile.goal === "Affordability") {
+        const x = recipeCosts(s, a, pool), y = recipeCosts(s, b, pool);
+        if (x.purchaseComplete !== y.purchaseComplete) return x.purchaseComplete ? -1 : 1;
+        if (x.purchaseComplete && y.purchaseComplete && Math.abs(x.checkout - y.checkout) > .01) return x.checkout - y.checkout;
+        if (x.complete && y.complete && Math.abs(x.perServing - y.perServing) > .01) return x.perServing - y.perServing;
+      }
+      return score(b) - score(a);
+    });
 }
 export function suggestCuisines(s) {
   const recipes = allowedRecipes(

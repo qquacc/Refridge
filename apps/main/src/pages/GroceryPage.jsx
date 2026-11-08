@@ -1,3 +1,5 @@
+import FoodPrices, { ShoppingBudget } from "../components/FoodPrices.jsx";
+import { groceryCosts, cad } from "../lib/costs.mjs";
 import React, { useState } from "react";
 import { Panel, Field } from "../components/FeatureUI.jsx";
 import { catalog, uid } from "../data/food.mjs";
@@ -5,6 +7,7 @@ import { completeGrocery, clearShoppingList } from "../lib/planning.mjs";
 export default function GroceryPage({ state, setState, notify }) {
   const [tab, setTab] = useState("pending");
   const [editing, setEditing] = useState(false);
+  const costs = groceryCosts(state);
   const rows = tab === "pending" ? state.groceries : state.completedGroceries;
   return (
     <div className="feature-page">
@@ -12,7 +15,7 @@ export default function GroceryPage({ state, setState, notify }) {
         title="Your shopping list"
         subtitle="Add what you need, then tick off items as you shop."
         action={
-          <label className="compact-select">
+          <label className="compact-select grocery-view-select">
             Show
             <select
               aria-label="Grocery list view"
@@ -25,6 +28,7 @@ export default function GroceryPage({ state, setState, notify }) {
           </label>
         }
       >
+        {tab === "pending" && <ShoppingBudget state={state} />}
         <form
           className="add-grocery"
           onSubmit={(e) => {
@@ -97,6 +101,7 @@ export default function GroceryPage({ state, setState, notify }) {
                 {g.auto && (
                   <small className="row-note">Auto · {g.reason}</small>
                 )}
+                {tab === "pending" && <small className="row-note">{(() => { const line = costs.lines.find((l) => l.id === g.id); return line?.known ? `${cad(line.cad)} estimated` : "Price not added"; })()}</small>}
                 {g.completedAt && (
                   <small className="row-note">
                     Completed {new Date(g.completedAt).toLocaleString()}
@@ -159,6 +164,7 @@ export default function GroceryPage({ state, setState, notify }) {
           </button>
         )}
       </Panel>
+      <FoodPrices state={state} setState={setState} notify={notify} />
       <Panel
         title="Foods you like to keep on hand"
         subtitle="Pick your regular foods. We’ll add them to your shopping list when you’re running low."

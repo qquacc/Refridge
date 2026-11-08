@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import {
   cameraApi,
   readSaved,
+  saveDevice,
 } from "../../../../packages/shared/camera-client.mjs";
 const KEY = "fridgeful:camera-owner:v1";
 export async function socialAction(path, body = {}) {
-  const device = readSaved(KEY);
-  if (!device)
-    throw Error("Create a camera/server session in Paired cameras first.");
+  let device = readSaved(KEY);
+  if (!device) {
+    device = await cameraApi("/api/sessions", { method: "POST", body: { fridgeId: "my-fridge" } });
+    saveDevice(KEY, device);
+  }
   return cameraApi("/api/social" + path, {
     token: device.ownerToken,
     method: "POST",
@@ -36,6 +39,7 @@ export function useFriendFridges(state, setState, onIncoming) {
             enabled: true,
             name: s.profile.name,
             avatar: s.profile.avatar,
+            fridgeName: s.household || s.profile.name + "’s Fridge",
             pointsLedger: s.pointsLedger,
           };
           const digest = JSON.stringify(profile);
@@ -107,6 +111,8 @@ export function useFriendFridges(state, setState, onIncoming) {
                     userId: "friend-" + f.id,
                   })),
                 ),
+                friendRequests: view.requests || [],
+                ownTag: view.tag || "",
                 remoteTrades: view.trades,
                 friendMessages: view.messages || [],
                 ownSessionId: d.sessionId || d.id,

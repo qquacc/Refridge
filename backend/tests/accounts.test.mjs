@@ -89,9 +89,17 @@ test("accounts and login sessions persist across Mongo-backed cold instances", a
   const x = await setup(t, { store, images: store.images }), a = await client(x);
   const registered = await a.request("/api/auth/signup", { body: { username: "persisted", password }, headers: { "x-forwarded-proto": "https" } });
   assert.match(registered.cookie, /Secure/);
+  assert.equal(typeof registered.data.account.createdAt, "number");
+  const storedAccount = (await store.read()).accounts[registered.data.account.id];
+  assert.equal(storedAccount.createdAt, registered.data.account.createdAt);
   const another = await new MongoStore({ client: fake.client() }).initialize();
   const y = await setup(t, { store: another, images: another.images }), restored = await client(y, a.cookie());
-  assert.equal((await restored.request("/api/auth/me")).data.account.id, registered.data.account.id);
+  const me = (await restored.request("/api/auth/me")).data.account;
+  assert.equal(me.id, registered.data.account.id);
+  assert.equal(me.createdAt, registered.data.account.createdAt);
+  await restored.request("/api/auth/logout", { body: {} });
+  const login = await restored.request("/api/auth/login", { body: { username: "persisted", password } });
+  assert.equal(login.data.account.createdAt, registered.data.account.createdAt);
 });
 
 test("case-insensitive usernames, password limits, and persistent login throttling are enforced", async (t) => {
@@ -129,4 +137,26 @@ test("sample login provisions a populated demo once and preserves subsequent edi
   const other = await client(x);
   const signup = await other.request('/api/auth/signup', { body: { username: 'ordinary', password } });
   assert.equal(signup.data.appState, null);
+});
+
+test('legacy membership dates are backfilled once on login or existing-session restore and persisted in Mongo', async(t)=>{
+  const fake=fakeMongo(),store=await new MongoStore({client:fake.client()}).initialize();
+  const x=await setup(t,{store,images:store.images}),a=await client(x);
+  const signup=await a.request('/api/auth/signup',{body:{username:'legacy_date',password}}),id=signup.data.account.id;
+  await store.mutate((s)=>{delete s.accounts[id].createdAt;});
+  x.setTime(x.getTime()+86400000);
+  const first=x.getTime();
+  assert.equal((await a.request('/api/auth/me')).data.account.createdAt,first);
+  const fresh=await new MongoStore({client:fake.client()}).initialize();
+  assert.equal((await fresh.read()).accounts[id].createdAt,first);
+  x.setTime(first+86400000);
+  assert.equal((await a.request('/api/auth/me')).data.account.createdAt,first);
+  await a.request('/api/auth/logout',{body:{}});
+  await store.mutate((s)=>{s.accounts[id].createdAt=null;});
+  const login=await a.request('/api/auth/login',{body:{username:'legacy_date',password}});
+  assert.equal(login.data.account.createdAt,x.getTime());
+  assert.equal((await fresh.read()).accounts[id].createdAt,x.getTime());
+  x.setTime(x.getTime()+86400000);
+  await a.request('/api/auth/logout',{body:{}});
+  assert.equal((await a.request('/api/auth/login',{body:{username:'legacy_date',password}})).data.account.createdAt,login.data.account.createdAt);
 });

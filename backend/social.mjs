@@ -13,6 +13,11 @@ export function socialView(state, s) {
         other?.social?.enabled && (other.social.friendIds || []).includes(s.id),
     );
   return {
+    tag: state.accounts?.[s.accountId]?.username || null,
+    requests: (state.friendRequests || []).filter((r) => r.fromId === s.id || r.toId === s.id).map((r) => ({ ...r,
+      fromName: state.sessions[r.fromId]?.social?.profile?.name || "Friend",
+      toName: state.sessions[r.toId]?.social?.profile?.name || "Friend",
+    })),
     messages: s.social?.enabled ? (state.socialMessages || []).filter((m) =>
       (m.fromId === s.id && friends.some((f) => f.id === m.toId)) ||
       (m.toId === s.id && friends.some((f) => f.id === m.fromId))) : [],
@@ -35,6 +40,7 @@ export function socialView(state, s) {
 export function updateSocial(s, input) {
   s.social ||= { friendIds: [] };
   s.social.enabled = !!input.enabled;
+  if (typeof input.fridgeName === "string" && input.fridgeName.trim()) s.fridgeName = input.fridgeName.trim().slice(0, 80);
   const avatar =
     typeof input.avatar === "string" &&
     input.avatar.length < 150000 &&
@@ -194,4 +200,30 @@ export function sendFriendMessage(state, s, input, now) {
   const message = { id: randomUUID(), fromId: s.id, toId: other.id, kind: prompt ? "system" : "text", prompt, text, createdAt: new Date(now).toISOString(), clientId };
   messages.push(message);
   return message;
+}
+
+export function requestFriendByTag(state, s, tag, now) {
+  const username = typeof tag === "string" ? tag.trim().replace(/^@/, "").toLowerCase() : "";
+  if (!/^[a-z0-9_]{3,24}$/.test(username)) throw Error("Enter a valid @username.");
+  const account = Object.values(state.accounts || {}).find((a) => a.username === username);
+  const other = account && Object.values(state.sessions).find((o) => o.accountId === account.id);
+  if (!s.social?.enabled || !other?.social?.enabled) throw Error("This person is not accepting connections yet. Ask them to enable friend sharing in Kitchens.");
+  if (other.id === s.id) throw Error("Choose someone else's @username.");
+  if ((s.social.friendIds || []).includes(other.id)) throw Error("You are already connected.");
+  const requests = state.friendRequests ||= [];
+  if (requests.some((r) => r.status === "pending" && ((r.fromId === s.id && r.toId === other.id) || (r.toId === s.id && r.fromId === other.id)))) throw Error("A friend request is already waiting between you. Check your requests.");
+  if (requests.filter((r) => r.fromId === s.id && r.status === "pending").length >= 30) throw Error("You have too many pending requests. Cancel one before sending another.");
+  const request = { id: randomUUID(), fromId: s.id, toId: other.id, status: "pending", createdAt: now };
+  requests.push(request); return request;
+}
+export function respondFriendRequest(state, s, id, status) {
+  const request = state.friendRequests?.find((r) => r.id === id && r.status === "pending");
+  if (!request || (status === "cancelled" ? request.fromId !== s.id : request.toId !== s.id || !["accepted", "declined"].includes(status))) throw Error("This friend request cannot be changed by you.");
+  if (status === "accepted") {
+    const other = state.sessions[request.fromId];
+    if (!s.social?.enabled || !other?.social?.enabled) throw Error("Both people must enable friend sharing before connecting.");
+    s.social.friendIds = [...new Set([...(s.social.friendIds || []), other.id])];
+    other.social.friendIds = [...new Set([...(other.social.friendIds || []), s.id])];
+  }
+  request.status = status; return request;
 }

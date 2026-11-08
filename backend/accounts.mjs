@@ -16,9 +16,10 @@ function cookie(req, token, expires = LIFETIME / 1000) {
   const secure = !!process.env.VERCEL || !!req.socket.encrypted || req.headers["x-forwarded-proto"] === "https";
   return `${COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${expires}${secure ? "; Secure" : ""}`;
 }
+const hasCreatedAt = (account) => (typeof account.createdAt === "number" && Number.isFinite(account.createdAt) && account.createdAt > 0) || (typeof account.createdAt === "string" && account.createdAt.trim() !== "" && Number.isFinite(Date.parse(account.createdAt)));
 function view(state, account) {
   const camera = Object.values(state.sessions).find((s) => s.accountId === account.id);
-  return { account: { id: account.id, username: account.username }, appState: account.appState || null, revision: account.revision || 0,
+  return { account: { id: account.id, username: account.username, createdAt: account.createdAt ?? null }, appState: account.appState || null, revision: account.revision || 0,
     cameraDevice: camera ? { sessionId: camera.id, ownerToken: "account:" + camera.id } : null };
 }
 export function validateAppState(value) {
@@ -80,13 +81,14 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
       const token = randomBytes(32).toString("base64url");
       const result = await store.mutate((state) => {
         state.accounts ||= {}; state.accountSessions ||= {};
-        let account = existing;
+        let account = existing ? state.accounts[existing.id] : null;
         if (signup) {
           if (Object.values(state.accounts).some((a) => a.username === username)) fail(409, "That username is unavailable.");
           account = { id: randomUUID(), username, salt, passwordHash: derived.toString("hex"), createdAt: now(), revision: 0, appState: input.importState ? validateAppState(input.importState) : null };
           state.accounts[account.id] = account;
         }
         for (const [k, session] of Object.entries(state.accountSessions)) if (session.expiresAt <= now()) delete state.accountSessions[k];
+        if (!hasCreatedAt(account)) account.createdAt = now();
         // Bound active sessions for an account; logging in rotates this browser's token.
         const active = Object.entries(state.accountSessions).filter(([, s]) => s.accountId === account.id).sort((a, b) => a[1].expiresAt - b[1].expiresAt);
         for (const [k] of active.slice(0, Math.max(0, active.length - 9))) delete state.accountSessions[k];
@@ -104,7 +106,17 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
     }
     const state = await store.read(), account = signedInAccount(state, req, now());
     if (!account) fail(401, "Log in to your Refridge account.");
-    if (path === "/api/auth/me" && req.method === "GET") { send(view(state, account)); return true; }
+    if (path === "/api/auth/me" && req.method === "GET") {
+      if (!hasCreatedAt(account)) {
+        const result = await store.mutate((current) => {
+          const saved = current.accounts[account.id];
+          if (!hasCreatedAt(saved)) saved.createdAt = now();
+          return view(current, saved);
+        });
+        send(result);
+      } else send(view(state, account));
+      return true;
+    }
     if (path === "/api/auth/claim-camera" && req.method === "POST") {
       const input = await jsonBody(req);
       const digest = typeof input.ownerToken === "string" ? hash(input.ownerToken) : "";

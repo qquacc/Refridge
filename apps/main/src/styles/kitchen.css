@@ -17,7 +17,7 @@
 .home-screen .main-wrap main { flex: 1; min-height: 0; width: 100%; max-width: 1450px; padding: 18px 30px 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
 .home-screen .page-heading { display: none; }
 .fridge-home.feature-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-.fridge-home-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.fridge-home-heading { padding-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
 .fridge-home-heading h1 { font-size: clamp(23px, 3.3vh, 34px); line-height: 1.1; letter-spacing: -1.3px; margin: 0; }
 .fridge-home-heading p { margin: 5px 0 0; color: #7a8471; font-size: 12px; }
 .fridge-home-heading .btn { padding: 10px 15px; font-size: 12px; }

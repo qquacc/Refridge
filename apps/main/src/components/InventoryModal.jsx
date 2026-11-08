@@ -1,7 +1,10 @@
+import { photoDataUrl } from "../lib/photos.mjs";
+import { cameraApi } from "../../../../packages/shared/camera-client.mjs";
+import SmartActionTip from "./SmartActionTip.jsx";
 import React, { useState } from "react";
 import Icon from "./Icon.jsx";
 import { Field } from "./FeatureUI.jsx";
-import { catalog, uid, daysFromNow } from "../data/food.mjs";
+import { catalog, uid } from "../data/food.mjs";
 import { putFood, allInventory } from "../lib/domain.mjs";
 export default function InventoryModal({
   model,
@@ -19,6 +22,24 @@ export default function InventoryModal({
         ? "custom"
         : catalog[0].name;
   const [choice, setChoice] = useState(initial);
+  const [photo, setPhoto] = useState(""), [recognizing, setRecognizing] = useState(false), [prediction, setPrediction] = useState(null);
+  const [draft, setDraft] = useState({ name: old?.name || "", grams: old?.grams || 250, ...Object.fromEntries(["kcal", "protein", "carbs", "fat", "fiber"].map((k) => [k, old?.[k] ?? ""])) });
+  const recognition = React.useRef(null);
+  React.useEffect(() => () => recognition.current?.abort(), []);
+  async function identify() {
+    if (!photo || recognizing) return;
+    const controller = new AbortController(); recognition.current = controller;
+    const timer = setTimeout(() => controller.abort(), 35000);
+    setRecognizing(true); setError("");
+    try {
+      const result = await cameraApi("/api/meals/recognize", { method: "POST", body: { jpegBase64: photo.split(",")[1] }, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const grams = Number.isFinite(result.grams) && result.grams > 0 ? result.grams : null;
+      setDraft({ name: result.name.slice(0, 80), grams: grams ?? "", ...Object.fromEntries(["kcal", "protein", "carbs", "fat", "fiber"].map((k) => [k, grams && Number.isFinite(result.nutrients[k]) ? Math.round(result.nutrients[k] / grams * 1000) / 10 : ""])) });
+      setChoice("custom"); setPrediction(result);
+    } catch (e) { setError(controller.signal.aborted ? "Recognition stopped. Try again or enter the food manually." : e.message); }
+    finally { clearTimeout(timer); setRecognizing(false); }
+  }
   const [fridgeId, setFridgeId] = useState(
     old?.fridgeId || state.activeFridgeId,
   );
@@ -66,10 +87,11 @@ export default function InventoryModal({
         fridgeId,
         containerId: old?.containerId || "",
         nutritionSource: base?.nutritionSource || {
-          publisher: "Manual label",
-          dataset: "Custom food",
+          publisher: prediction ? "Gemini photo estimate" : "Manual label",
+          dataset: prediction ? "Photo-based estimate reviewed by user" : "Custom food",
         },
         customNutrition: choice === "custom",
+        estimated: !!prediction,
         ...(choice === "custom"
           ? {
               cnfId: null,
@@ -141,9 +163,16 @@ export default function InventoryModal({
             {error}
           </div>
         )}
+        {!editing && <SmartActionTip>Pair your Top Camera and Side Camera in Scan to spot newly added food and estimate its amount. Review the suggested details before updating your fridge.</SmartActionTip>}
+        {!editing && <section className="add-food-photo" aria-label="Identify food from a photo">
+          <label className="field"><span>Scan or upload a food photo</span><input type="file" accept="image/*" capture="environment" disabled={recognizing} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { setPhoto(await photoDataUrl(file, 768)); setPrediction(null); setError(""); } catch (e) { setError(e.message); } }} /></label>
+          {photo && <><img className="add-food-photo-preview" src={photo} alt="Food to identify" /><button className="btn outline" type="button" disabled={recognizing} onClick={identify}>{recognizing ? "Identifying food…" : "Identify food with AI"}</button><p className="form-hint">The photo is sent to Gemini. Refridge doesn’t keep the photo.</p></>}
+          {prediction && <p className="notice">Food details filled in as estimates. {prediction.note} Check the weight and nutrition before saving. You can leave the expiry date blank if it’s unknown. Photos cannot verify allergens.</p>}
+        </section>}
         <form className="feature-form" onSubmit={submit}>
+          <fieldset className="food-entry-fields" disabled={recognizing}>
           <Field label="Food">
-            <select value={choice} onChange={(e) => setChoice(e.target.value)}>
+            <select value={choice} onChange={(e) => { setChoice(e.target.value); setPrediction(null); }}>
               {catalog.map((c) => (
                 <option key={c.name}>{c.name}</option>
               ))}
@@ -157,11 +186,11 @@ export default function InventoryModal({
                 name="name"
                 required
                 maxLength={80}
-                defaultValue={old?.name}
+                value={draft.name}
+                onChange={(e) => setDraft((s) => ({ ...s, name: e.target.value }))}
               />
               <p className="form-hint">
-                Optional values per 100 g from a food label. Blank values count
-                as unknown.
+                {prediction ? "Estimated nutrition per 100 g. Review these values or replace them with the food label." : "Optional values per 100 g from a food label. Blank values count as unknown."}
               </p>
               <div className="form-grid">
                 {["kcal", "protein", "carbs", "fat", "fiber"].map((k) => (
@@ -172,7 +201,8 @@ export default function InventoryModal({
                     type="number"
                     min="0"
                     step="0.1"
-                    defaultValue={old?.[k] ?? ""}
+                    value={draft[k]}
+                    onChange={(e) => setDraft((s) => ({ ...s, [k]: e.target.value }))}
                   />
                 ))}
               </div>
@@ -187,14 +217,14 @@ export default function InventoryModal({
               max="100000"
               step="0.1"
               required
-              defaultValue={old?.grams || 250}
+              value={draft.grams}
+              onChange={(e) => setDraft((s) => ({ ...s, grams: e.target.value }))}
             />
             <Field
-              label="Expiry date"
+              label="Expiry date (optional)"
               name="expires"
               type="date"
-              required
-              defaultValue={old?.expires || daysFromNow(5)}
+              defaultValue={old?.expires || ""}
             />
             <Field label="Storage space">
               <select
@@ -230,12 +260,13 @@ export default function InventoryModal({
             </Field>
           </div>
           <p className="form-hint">
-            Check who the food belongs to and when you plan to use it.
+            Check who the food belongs to. Add an expiry date if you know it; otherwise leave it blank.
             You can adjust the amount whenever it changes.
           </p>
           <button className="btn primary wide" type="submit">
             {editing ? "Save food details" : "Add to my fridge"}
           </button>
+          </fieldset>
         </form>
       </section>
     </div>

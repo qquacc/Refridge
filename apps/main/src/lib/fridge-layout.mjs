@@ -47,13 +47,13 @@ export const fridgeZones = [
 ];
 const lower = (v) => String(v || "").toLowerCase();
 const isDrink = (food) => /beverage|drink|juice/.test(lower(food.category))
-  || /\b(milk|juice|drink|water|soda|kombucha|kefir|lemonade|smoothie|beer|wine|cola|tea|coffee)\b/.test(lower(food.name));
+  || /\b(milk|juice|drink|water|soda|pepsi|coke|sprite|fanta|7up|kombucha|kefir|lemonade|smoothie|beer|wine|cola|tea|coffee)\b/.test(lower(food.name));
 const isSpread = (food) => /\b(butter|jam|jelly|marmalade|spread|tahini|honey|pesto|hummus|cream cheese|nutella)\b/.test(lower(food.name));
 const isSauce = (food) => /\b(sauce|ketchup|mustard|mayo|mayonnaise|dressing|salsa|syrup|relish|chutney|vinegar|miso|sriracha|condiment)\b/.test(lower(food.name));
 const isSeafood = (food) => /fish|seafood|shellfish/.test(lower(food.category))
   || /\b(salmon|tuna|cod|fish|shrimp|prawns?|crab|lobster|sardines?|trout|scallops?|mussels?|clams?|halibut|tilapia|mackerel|anchov\w*|squid|octopus)\b/.test(lower(food.name));
 export function fridgeZone(food) {
-  if (/\b(juice|smoothie|kombucha|soda|lemonade)\b/.test(lower(food.name))) return "door-drinks";
+  if (isDrink(food)) return "door-drinks";
   if (isSpread(food)) return "door-spreads";
   if (isSauce(food)) return "door-sauces";
   const category = fridgeCategory(food);

@@ -1,3 +1,5 @@
+import { combineOwnFridges } from "./lib/fridges.mjs";
+import FriendSharing from "./components/FriendSharing.jsx";
 import WelcomeSplash from "./components/WelcomeSplash.jsx";
 import FriendChat from "./components/FriendChat.jsx";
 import Onboarding from "./components/Onboarding.jsx";
@@ -40,11 +42,12 @@ function KitchensPage(props) {
   const [section, setSection] = useState(props.chatTarget ? "messages" : "connections");
   useEffect(() => { if (props.chatTarget) setSection("messages"); }, [props.chatTarget]);
   return <div className="feature-page"><div className="tabs" aria-label="Kitchens sections">
-    <button className={section === "connections" ? "active" : ""} onClick={() => setSection("connections")}>Connections & trades</button>
+    <button className={section === "connections" ? "active" : ""} onClick={() => setSection("connections")}>Fridges</button>
+    <button className={section === "connect" ? "active" : ""} onClick={() => setSection("connect")}>Connect</button>
     <button className={section === "meals" ? "active" : ""} onClick={() => setSection("meals")}>Shared meal plans</button>
     <button className={section === "messages" ? "active" : ""} onClick={() => setSection("messages")}>Messages</button>
     {section === "meals" && <button className="text-btn" onClick={() => props.navigate("challenges")}>This Week’s Leaderboard ↗</button>}
-  </div>{section === "connections" ? <InventoryPage {...props} community /> : section === "messages" ? <FriendChat {...props} onMealCollab={() => setSection("meals")} /> : <MealsPage {...props} community />}</div>;
+  </div>{section === "connections" ? <InventoryPage {...props} community /> : section === "connect" ? <FriendSharing {...props} /> : section === "messages" ? <FriendChat {...props} onMealCollab={() => setSection("meals")} /> : <MealsPage {...props} community />}</div>;
 }
 function ProfileAndGoals(props) {
   const goals = props.activeProfileTab === "goals";
@@ -113,7 +116,7 @@ function read(account) {
   try {
     const snapshot = loadAccountSnapshot(account);
     return snapshot && Array.isArray(snapshot.items) && Array.isArray(snapshot.logs) && Array.isArray(snapshot.groceries) && snapshot.goals
-      ? refreshDerived(upgradeState(snapshot)) : empty();
+      ? refreshDerived(combineOwnFridges(upgradeState(snapshot))) : empty();
   } catch { return empty(); }
 }
 export default function App({ account, onLogout }) {
@@ -130,7 +133,7 @@ export default function App({ account, onLogout }) {
     (change) =>
       rawSet((previous) =>
         refreshDerived(
-          typeof change === "function" ? change(previous) : change,
+          combineOwnFridges(typeof change === "function" ? change(previous) : change),
         ),
       ),
     [],
@@ -250,9 +253,9 @@ export default function App({ account, onLogout }) {
           <div>
             <strong>{state.household || `${state.profile.name}'s kitchen`}</strong>
             <small>
-              {state.profile.complete
-                ? "Profile & dietary preferences"
-                : "Set up your profile"}
+              {account.createdAt && Number.isFinite(new Date(account.createdAt).getTime())
+                ? `Member since ${new Date(account.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                : "Member since date unavailable"}
             </small>
           </div>
         </button>
