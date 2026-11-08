@@ -139,12 +139,24 @@ export async function analyzeWithVision(
     }),
     signal: AbortSignal.timeout(45000),
   });
-  if (!response.ok)
-    throw Error(
-      "Vision provider rejected the request (" +
-        response.status +
-        "). Check model access, key and billing.",
-    );
+  if (!response.ok) {
+    // Log diagnostic codes only: never keys, image data, context, or raw bodies.
+    let failure;
+    try { failure = await response.json(); } catch {}
+    const safeCode = (value) => typeof value === "string" && /^[A-Z][A-Z0-9_]{0,79}$/.test(value) ? value : undefined;
+    const safeModel = /^[a-zA-Z0-9._-]{1,100}$/.test(model) ? model : "invalid-model-id";
+    console.error("Gemini image analysis failed", {
+      httpStatus: response.status,
+      model: safeModel,
+      providerStatus: safeCode(failure?.error?.status),
+      reasons: (Array.isArray(failure?.error?.details) ? failure.error.details : [])
+        .map((detail) => safeCode(detail?.reason)).filter(Boolean),
+    });
+    const hint = response.status === 404
+      ? `Model ${safeModel} was not found or is unavailable to this API project. Check VISION_MODEL in Vercel, redeploy, and retry.`
+      : "Check model access, API key, quota, and billing in the Google AI project.";
+    throw Error(`Gemini image analysis failed (${response.status}). ${hint}`);
+  }
   const payload = await response.json();
   const candidate = payload.candidates?.[0];
   if (candidate?.finishReason !== "STOP")

@@ -368,3 +368,23 @@ test("vision rejects missing or generic camera roles before contacting Gemini", 
   ), /Top Camera and one Side Camera/);
   assert.equal(calls, 0);
 });
+
+test("Gemini 404 logs diagnostic codes without leaking keys or provider bodies", async (t) => {
+  const logs = [];
+  t.mock.method(console, "error", (...args) => logs.push(args));
+  await assert.rejects(() => analyzeWithVision(
+    { before: rolePhotos, after: rolePhotos, context },
+    { apiKey: "private-test-key", model: "missing-model", fetchImpl: async () => ({
+      ok: false, status: 404,
+      json: async () => ({ error: {
+        status: "NOT_FOUND", message: "private-test-key and private image contents",
+        details: [{ reason: "MODEL_NOT_FOUND" }],
+      } }),
+    }) },
+  ), /missing-model.*unavailable.*Vercel/);
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0][1].providerStatus, "NOT_FOUND");
+  assert.deepEqual(logs[0][1].reasons, ["MODEL_NOT_FOUND"]);
+  assert(!JSON.stringify(logs).includes("private-test-key"));
+  assert(!JSON.stringify(logs).includes("private image contents"));
+});
