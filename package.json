@@ -1,0 +1,24 @@
+{
+  "name": "fridgeful-camera-system",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/main",
+    "apps/camera"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --workspace @fridgeful/main && npm run build --workspace @fridgeful/camera && node scripts/combine-static.mjs",
+    "start": "node --env-file-if-exists=.env backend/server.mjs",
+    "test": "npm run test --workspace @fridgeful/main && node --test backend/tests/*.test.mjs",
+    "test:backend": "node --test backend/tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/functions": "^3.11.0",
+    "mongodb": "^7.8.0"
+  }
+}

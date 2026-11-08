@@ -1,0 +1,349 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { setup, jpg } from "./helpers.mjs";
+import { canadianCatalog } from "../../packages/shared/data/cnf-catalog.mjs";
+import { analyzeWithVision } from "../vision.mjs";
+import { loadNutrition, canadianFood, searchNutrition } from "../nutrition.mjs";
+const spinach = canadianCatalog[0];
+const context = {
+  inventory: [
+    { ...spinach, id: "lot", fridgeId: "my-fridge", ownerId: "me", grams: 150 },
+  ],
+  containers: [],
+  defaultOwnerId: "me",
+  appliedEventIds: [],
+};
+const analysis = {
+  occluded: false,
+  uncertain: false,
+  summary: "Spinach removed",
+  changes: [
+    {
+      foodId: spinach.cnfId,
+      inventoryItemId: "lot",
+      direction: "out",
+      containerId: null,
+      fillPercent: null,
+      grams: null,
+      massMethod: "unknown",
+      wholeItem: true,
+      confidence: 0.99,
+      directionConfidence: 0.99,
+      expires: null,
+      notes: "",
+    },
+  ],
+};
+async function waitFor(x, o, predicate) {
+  for (let n = 0; n < 100; n++) {
+    const s = (await x.request("/api/session", { token: o.ownerToken })).data;
+    if (predicate(s)) return s;
+    await new Promise((r) => setTimeout(r, 15));
+  }
+  throw Error("Timed out waiting for automation");
+}
+async function enabled(t, vision = async () => analysis) {
+  const x = await setup(t, {
+    visionAnalyzer: vision,
+    visionKeyConfigured: () => true,
+  });
+  const o = await x.owner(),
+    a = await x.pair(o),
+    b = await x.pair(o, "Second angle");
+  await x.ready(a);
+  await x.ready(b);
+  await x.request("/api/context", {
+    token: o.ownerToken,
+    method: "POST",
+    body: context,
+  });
+  assert.equal(
+    (
+      await x.request("/api/automation", {
+        token: o.ownerToken,
+        method: "POST",
+        body: { enabled: true, consent: true },
+      })
+    ).status,
+    200,
+  );
+  return { x, o, a, b };
+}
+async function capture(x, o, cameras) {
+  const e = (
+    await x.request("/api/capture", {
+      token: o.ownerToken,
+      method: "POST",
+      body: {},
+    })
+  ).data;
+  for (const c of cameras)
+    assert.equal(
+      (
+        await x.request("/api/events/" + e.id + "/image", {
+          token: c.cameraToken,
+          method: "POST",
+          raw: true,
+          body: jpg,
+        })
+      ).status,
+      201,
+    );
+  return e;
+}
+test("automatic analysis requires a server key and explicit consent", async (t) => {
+  const x = await setup(t, { visionKeyConfigured: () => false }),
+    o = await x.owner();
+  assert.equal(
+    (
+      await x.request("/api/automation", {
+        token: o.ownerToken,
+        method: "POST",
+        body: { enabled: true, consent: true },
+      })
+    ).status,
+    409,
+  );
+  const y = await setup(t, { visionKeyConfigured: () => true }),
+    p = await y.owner();
+  assert.equal(
+    (
+      await y.request("/api/automation", {
+        token: p.ownerToken,
+        method: "POST",
+        body: { enabled: true },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await y.request("/api/context", {
+        token: o.ownerToken,
+        method: "POST",
+        body: context,
+      })
+    ).status,
+    401,
+  );
+});
+test("two views form a baseline then one automatic removal, with acknowledgement protecting stock sync", async (t) => {
+  let calls = 0;
+  const { x, o, a, b } = await enabled(t, async () => {
+    calls++;
+    return analysis;
+  });
+  const baseline = await capture(x, o, [a, b]);
+  await waitFor(
+    x,
+    o,
+    (s) => s.events.find((e) => e.id === baseline.id)?.status === "baseline",
+  );
+  assert.equal(calls, 0);
+  const e = await capture(x, o, [a, b]);
+  let s = await waitFor(
+    x,
+    o,
+    (s) => s.events.find((v) => v.id === e.id)?.status === "confirmed",
+  );
+  assert.equal(calls, 1);
+  assert.equal(s.context.inventory[0].grams, 0);
+  assert.equal(
+    s.events.find((v) => v.id === e.id).confirmation.estimatedConsumption,
+    false,
+  );
+  assert.equal(
+    (
+      await x.request("/api/context", {
+        token: o.ownerToken,
+        method: "POST",
+        body: context,
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await x.request("/api/context", {
+        token: o.ownerToken,
+        method: "POST",
+        body: {
+          ...context,
+          inventory: s.context.inventory,
+          appliedEventIds: [e.id],
+        },
+      })
+    ).status,
+    200,
+  );
+  await x.request("/api/events/" + e.id + "/analyze", {
+    token: o.ownerToken,
+    method: "POST",
+  });
+  assert.equal(calls, 1);
+});
+test("uncertain vision output stays in review with no inventory change and no automatic rebilling", async (t) => {
+  let calls = 0;
+  const { x, o, a, b } = await enabled(t, async () => {
+    calls++;
+    return { ...analysis, uncertain: true };
+  });
+  await capture(x, o, [a, b]);
+  await waitFor(x, o, (s) => s.events[0].status === "baseline");
+  const e = await capture(x, o, [a, b]);
+  const s = await waitFor(
+    x,
+    o,
+    (s) =>
+      s.events.find((v) => v.id === e.id)?.analysis?.state === "needs-review",
+  );
+  assert.equal(s.context.inventory[0].grams, 150);
+  assert.equal(s.events[0].status, "pending");
+  await x.request("/api/session", { token: o.ownerToken });
+  assert.equal(calls, 1);
+});
+test("vision request uses image inputs, strict schema, container photos, and store:false", async () => {
+  let request;
+  const result = await analyzeWithVision(
+    {
+      before: [{ cameraId: "a", bytes: jpg }],
+      after: [{ cameraId: "a", bytes: jpg }],
+      context: {
+        ...context,
+        containers: [
+          {
+            id: "box",
+            name: "Box",
+            photo: "data:image/jpeg;base64," + jpg.toString("base64"),
+          },
+        ],
+      },
+    },
+    {
+      apiKey: "test-secret",
+      fetchImpl: async (url, args) => {
+        request = { url, ...JSON.parse(args.body) };
+        assert.equal(args.headers.Authorization, "Bearer test-secret");
+        return {
+          ok: true,
+          json: async () => ({
+            output: [
+              {
+                content: [
+                  { type: "output_text", text: JSON.stringify(analysis) },
+                ],
+              },
+            ],
+          }),
+        };
+      },
+    },
+  );
+  assert.equal(result.changes[0].foodId, spinach.cnfId);
+  assert.equal(request.store, false);
+  assert.equal(request.text.format.strict, true);
+  assert.equal(
+    request.input[0].content.filter((c) => c.type === "input_image").length,
+    3,
+  );
+  assert(!JSON.stringify(request).includes("test-secret"));
+});
+test("vision provider failure does not create fabricated nutrition", async () => {
+  await assert.rejects(
+    () =>
+      analyzeWithVision(
+        { before: [], after: [], context },
+        { apiKey: "key", fetchImpl: async () => ({ ok: false, status: 429 }) },
+      ),
+    /429/,
+  );
+  await assert.rejects(
+    () =>
+      analyzeWithVision(
+        { before: [], after: [], context },
+        {
+          apiKey: "key",
+          fetchImpl: async () => ({
+            ok: true,
+            json: async () => ({ output_text: "not json" }),
+          }),
+        },
+      ),
+    /incomplete/,
+  );
+});
+test("the imported Health Canada dataset contains full foods and resolves official food IDs", async () => {
+  const all = await loadNutrition();
+  assert.equal(all.length, 5690);
+  assert.equal(canadianFood("2213").kcal, 23);
+  assert(
+    (await searchNutrition("spinach raw")).some((f) => f.cnfId === "2213"),
+  );
+  assert.equal(canadianFood("made-up"), null);
+});
+
+test("automatic tracking holds a single-angle event for review instead of analysing an incomplete two-phone setup", async (t) => {
+  let calls = 0;
+  const { x, o, a, b } = await enabled(t, async () => {
+    calls++;
+    return analysis;
+  });
+  await x.request("/api/camera/heartbeat", {
+    token: b.cameraToken,
+    method: "POST",
+    body: { ready: false },
+  });
+  const e = await capture(x, o, [a]);
+  const s = await waitFor(
+    x,
+    o,
+    (s) =>
+      s.events.find((v) => v.id === e.id)?.analysis?.state === "needs-review",
+  );
+  assert.equal(calls, 0);
+  assert.equal(s.context.inventory[0].grams, 150);
+  assert.match(s.events[0].analysis.summary, /both cameras/);
+});
+
+test("a delayed old capture cannot reverse inventory after a newer reference scene", async (t) => {
+  let calls = 0;
+  const { x, o, a, b } = await enabled(t, async () => {
+    calls++;
+    return analysis;
+  });
+  const old = (
+    await x.request("/api/capture", {
+      token: o.ownerToken,
+      method: "POST",
+      body: {},
+    })
+  ).data;
+  await x.request("/api/events/" + old.id + "/image", {
+    token: a.cameraToken,
+    method: "POST",
+    raw: true,
+    body: jpg,
+  });
+  x.setTime(x.getTime() + 1000);
+  const next = await capture(x, o, [a, b]);
+  await waitFor(
+    x,
+    o,
+    (s) => s.events.find((e) => e.id === next.id)?.status === "baseline",
+  );
+  await x.request("/api/events/" + old.id + "/image", {
+    token: b.cameraToken,
+    method: "POST",
+    raw: true,
+    body: jpg,
+  });
+  const s = await waitFor(
+    x,
+    o,
+    (s) =>
+      s.events.find((e) => e.id === old.id)?.analysis?.state === "needs-review",
+  );
+  assert.equal(calls, 0);
+  assert.equal(s.context.inventory[0].grams, 150);
+  assert.match(s.events.find((e) => e.id === old.id).analysis.summary, /older/);
+});

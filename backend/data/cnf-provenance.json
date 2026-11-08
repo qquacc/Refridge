@@ -1,0 +1,11 @@
+{
+  "publisher": "Health Canada",
+  "dataset": "Canadian Nutrient File 2015",
+  "download": "https://www.canada.ca/content/dam/hc-sc/migration/hc-sc/fn-an/alt_formats/zip/nutrition/fiche-nutri-data/cnf-fcen-csv.zip",
+  "foods": 5690,
+  "nutrients": 152,
+  "curatedFoods": 110,
+  "amountBasis": "per 100 g edible portion",
+  "missingValues": "Unknown; not zero",
+  "imported": "2026-11-08"
+}

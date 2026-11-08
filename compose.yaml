@@ -1,0 +1,18 @@
+services:
+  fridgeful:
+    build: .
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-}
+      MONGODB_DB: ${MONGODB_DB:-fridgeful}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VISION_MODEL: ${VISION_MODEL:-gpt-4.1-mini}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    ports:
+      - "8787:8787"
+    volumes:
+      - fridgeful-data:/data
+    restart: unless-stopped
+volumes:
+  fridgeful-data:
