@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Panel, Field } from "../components/FeatureUI.jsx";
 import { catalog, uid } from "../data/food.mjs";
-import { completeGrocery } from "../lib/planning.mjs";
+import { completeGrocery, clearShoppingList } from "../lib/planning.mjs";
 export default function GroceryPage({ state, setState, notify }) {
   const [tab, setTab] = useState("pending");
   const [editing, setEditing] = useState(false);
@@ -10,7 +10,7 @@ export default function GroceryPage({ state, setState, notify }) {
     <div className="feature-page">
       <Panel
         title="Your shopping list"
-        subtitle="Usual foods replenish automatically when stock falls below its minimum."
+        subtitle="Add what you need, then tick off items as you shop."
         action={
           <label className="compact-select">
             Show
@@ -142,10 +142,15 @@ export default function GroceryPage({ state, setState, notify }) {
             )}
           </div>
         ))}
+        {tab === "pending" && rows.length > 0 && <button className="btn outline grocery-clear-all" onClick={() => {
+          if (!window.confirm("Clear everything from your shopping list? Automatic additions will pause for 12 hours. Your fridge and completed items will stay unchanged.")) return;
+          setState((s) => clearShoppingList(s)); notify("Shopping list cleared. Automatic additions paused for 12 hours.");
+        }}>Clear all</button>}
         {tab === "completed" && rows.length > 0 && (
           <button
             className="btn outline"
             onClick={() => {
+              if (!window.confirm("Clear all completed items? Foods that are still running low may return to your shopping list.")) return;
               setState((s) => ({ ...s, completedGroceries: [] }));
               notify("Completed history cleared");
             }}
@@ -155,16 +160,18 @@ export default function GroceryPage({ state, setState, notify }) {
         )}
       </Panel>
       <Panel
-        title="Usual stock"
-        subtitle="Foods and usual quantities are learned from observed stock levels. Manual adjustments stay in control."
+        title="Foods you like to keep on hand"
+        subtitle="Pick your regular foods. We’ll add them to your shopping list when you’re running low."
         action={
           <button className="text-btn" onClick={() => setEditing(!editing)}>
-            {editing ? "Hide settings" : "Manage usual foods"}
+            {editing ? "Done" : "Edit regular foods"}
           </button>
         }
       >
+        {!editing && <div className="regular-food-summary">{state.staples.filter((t) => t.enabled).length ? state.staples.filter((t) => t.enabled).map((t) => <div key={t.id}><strong>{t.name}</strong><span>Keep {t.usualGrams} g · add to list below {t.minimumGrams} g</span></div>) : <p>No regular foods selected. Choose “Edit regular foods” to get started.</p>}</div>}
         {editing && (
           <>
+            <p className="body-copy">Turn on the foods you want to keep stocked. For example: keep 250 g of yogurt, and add it to your list when less than 50 g is left.</p>
             <div className="staple-table">
               {state.staples.map((t) => (
                 <div key={t.id}>
@@ -186,7 +193,7 @@ export default function GroceryPage({ state, setState, notify }) {
                     {t.name}
                   </label>
                   <label>
-                    Usual g
+                    Keep this much (g)
                     <input
                       type="number"
                       min="1"
@@ -208,7 +215,7 @@ export default function GroceryPage({ state, setState, notify }) {
                     />
                   </label>
                   <label>
-                    Minimum g
+                    Add to list below (g)
                     <input
                       type="number"
                       min="0"
@@ -252,7 +259,7 @@ export default function GroceryPage({ state, setState, notify }) {
                       },
                     ],
                   }));
-                notify("Usual-stock rule saved");
+                notify("Regular food added");
               }}
             >
               <Field label="Food">
@@ -263,7 +270,7 @@ export default function GroceryPage({ state, setState, notify }) {
                 </select>
               </Field>
               <Field
-                label="Usual quantity (g)"
+                label="Keep this much (g)"
                 name="usual"
                 type="number"
                 required
@@ -271,22 +278,21 @@ export default function GroceryPage({ state, setState, notify }) {
                 defaultValue="250"
               />
               <Field
-                label="Reorder below (g)"
+                label="Add to list below (g)"
                 name="minimum"
                 type="number"
                 required
                 min="0"
                 defaultValue="50"
               />
-              <button className="btn primary">Add rule</button>
+              <button className="btn primary">Add regular food</button>
             </form>
           </>
         )}
         <p className="form-hint">
-          Completing an item keeps a timestamped memory and pauses its automatic
-          re-addition for 12 hours, giving you time to restock. Clearing
-          completed history removes that memory and lets any still-low staple
-          reappear.
+          Tick off what you’ve bought, then update your fridge when you unpack.
+          Bought items stay off your list for 12 hours. Clearing completed items
+          may bring back foods that are still running low.
         </p>
       </Panel>
     </div>

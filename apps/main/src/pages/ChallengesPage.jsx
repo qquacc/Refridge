@@ -27,16 +27,16 @@ export default function ChallengesPage({ state }) {
               title={`${c.points} points · ${c.reason}`}
               tabIndex={0}
             >
-              <span className="eyebrow">
-                {c.completed ? "COMPLETED" : "TODAY"}
+              <span className={"eyebrow challenge-status " + (c.completed ? "earned" : "")} >
+                {c.completed ? "✓ COMPLETED" : "TODAY"}
               </span>
               <h3>{c.name}</h3>
               <p>{c.reason}</p>
               <span className="reward">
                 {c.completed ? "✓ " : ""}
-                {c.points} points
+                {c.points} {c.completed ? "points earned" : "points to earn"}
               </span>
-              <div className="challenge-tooltip">Reward: {c.points} points</div>
+              <div className="challenge-tooltip">{c.completed ? "Already earned: " : "Reward: "}{c.points} points</div>
             </article>
           ))}
         </div>
@@ -73,8 +73,8 @@ export default function ChallengesPage({ state }) {
           </div>
         ))}
         <p className="form-hint">
-          Only recorded awards count. Sample friends start at zero; this local
-          roster is not an online friend account service.
+          Small food-saving habits add up. Earn points through your daily challenges
+          and cheer on your friends. Sample-account scores are for demonstration.
         </p>
       </Panel>
       <Panel

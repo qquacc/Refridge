@@ -12,31 +12,36 @@ export default function InventoryPage({
   setModal,
   notify,
   navigate,
+  community = false,
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
   const [offer, setOffer] = useState("");
   const [error, setError] = useState("");
   const all = allInventory(state);
+  const visibleFridges = state.fridges.filter((f) => community || f.ownerId === "me");
+  const activeId = visibleFridges.some((f) => f.id === state.activeFridgeId) ? state.activeFridgeId : visibleFridges[0]?.id;
   const foods = all.filter(
     (i) =>
-      i.fridgeId === state.activeFridgeId &&
+      i.fridgeId === activeId &&
       i.grams > 0 &&
       i.name.toLowerCase().includes(query.toLowerCase()),
   );
   const mine = all.filter((i) => i.ownerId === "me" && i.grams > 0);
   return (
     <div className="feature-page">
+      {community && <div className="kitchens-heading"><p>Friends, shared fridges, and exchanges in one place.</p><button className="btn outline" onClick={() => navigate("challenges")}>This Week’s Leaderboard ↗</button></div>}
+      {community && state.sampleAccount && <p className="notice">Demo connections: Allen and Ava are sample friends. Trade requests are saved locally to this account; no messages are sent.</p>}
       <div className="inventory-toolbar">
         <Field label="Fridge">
           <select
-            value={state.activeFridgeId}
+            value={activeId || ""}
             onChange={(e) => {
               setSelected(null);
               setState((s) => ({ ...s, activeFridgeId: e.target.value }));
             }}
           >
-            {state.fridges.map((f) => (
+            {visibleFridges.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
               </option>
@@ -53,9 +58,9 @@ export default function InventoryPage({
         <button
           className="btn outline"
           disabled={
-            state.fridges.find((f) => f.id === state.activeFridgeId)?.remote
+            state.fridges.find((f) => f.id === activeId)?.ownerId !== "me"
           }
-          onClick={() => setModal({ type: "add" })}
+          onClick={() => { setState((s) => ({ ...s, activeFridgeId: activeId })); setModal({ type: "add" }); }}
         >
           Add or correct food
         </button>
@@ -211,6 +216,7 @@ export default function InventoryPage({
           )}
         </Panel>
       )}
+      {community && <>
       <Panel
         title="Trade requests"
         subtitle="Connected requests sync through your server. Local sample requests are labelled below. Quantities are discussed in person."
@@ -331,12 +337,12 @@ export default function InventoryPage({
           </p>
         )}
       </Panel>
-      <FriendSharing
+      {!state.sampleAccount && <FriendSharing
         state={state}
         setState={setState}
         notify={notify}
         navigate={navigate}
-      />
+      />}
       <Panel
         title="Your fridges"
         subtitle="Add a fridge or manage sharing for combined meal planning."
@@ -401,6 +407,7 @@ export default function InventoryPage({
           <button className="btn outline">Add fridge</button>
         </form>
       </Panel>
+      </>}
     </div>
   );
 }

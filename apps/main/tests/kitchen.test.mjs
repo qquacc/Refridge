@@ -87,3 +87,54 @@ test("onboarding asks body questions individually, saves units correctly, and re
   const skipped = finishOnboardingStep(state, { ...draft, weightKg: "" }, 2, "2026-11-08", true);
   assert.equal(skipped.profile.weightKg, 72.5);
 });
+
+test("fridge zones put drinks and sauces in the door and every food in exactly one zone", async () => {
+  const { zoneFridgeFoods, fridgeZone, foodEmoji } = await import("../src/lib/fridge-layout.mjs");
+  const foods = [
+    { id: "milk", name: "Milk", category: "Dairy", grams: 1000 }, { id: "yog", name: "Greek yogurt", category: "Dairy", grams: 500 },
+    { id: "oj", name: "Orange juice, raw", category: "Fruits", grams: 900 }, { id: "pb", name: "Peanut butter", category: "Legumes", grams: 300 },
+    { id: "ts", name: "Tomato sauce", category: "Vegetables", grams: 400 }, { id: "kale", name: "Kale", category: "Vegetables", grams: 150 },
+    { id: "apple", name: "Apple", category: "Fruits", grams: 200 }, { id: "fish", name: "Salmon", category: "Protein", grams: 300 },
+    { id: "gone", name: "Cheddar", category: "Dairy", grams: 0 },
+  ];
+  assert.equal(fridgeZone(foods[0]), "door-drinks"); assert.equal(fridgeZone(foods[1]), "shelf-dairy");
+  assert.equal(fridgeZone(foods[2]), "door-drinks"); assert.equal(fridgeZone(foods[3]), "door-spreads");
+  assert.equal(fridgeZone(foods[4]), "door-sauces"); assert.equal(fridgeZone(foods[5]), "crisper-veg");
+  assert.equal(fridgeZone(foods[6]), "crisper-fruit"); assert.equal(fridgeZone(foods[7]), "drawer-seafood");
+  assert.equal(fridgeZone({ name: "Chicken breast", category: "Protein" }), "drawer-meat"); assert.equal(fridgeZone({ name: "Butter", category: "Dairy" }), "door-spreads");
+  const ids = Object.values(zoneFridgeFoods(foods)).flatMap((z) => z.foods.map((f) => f.id));
+  assert.equal(ids.length, foods.length - 1); assert.equal(new Set(ids).size, ids.length);
+  assert.equal(foodEmoji({ name: "Apricot, raw", emoji: "🍽️" }), "🍑"); assert.equal(foodEmoji({ name: "Kale", emoji: "🥬" }), "🥬");
+});
+
+test("food details pick the nutrient with the largest share of a daily reference and describe freshness", async () => {
+  const { foodHighlights, freshness, itemMacros } = await import("../src/lib/food-peek.mjs");
+  const { daysFromNow } = await import("../src/data/food.mjs");
+  const kale = { name: "Kale", grams: 200, nutrientsPer100g: { 203: 4.3, 401: 93, 430: 705, 208: 49, 205: 8.8, 204: 0.9 } };
+  const result = foodHighlights(kale, {}, {});
+  assert.equal(result.top.name, "Vitamin K"); assert.equal(Math.round(result.top.percent100g), 588);
+  assert.equal(result.top.inItem, 1410); assert.equal(result.others[0].name, "Vitamin C"); assert.equal(result.personal, false);
+  const personal = foodHighlights(kale, { birthday: "1990-01-01", gender: "Woman" }, {});
+  assert.equal(personal.personal, true); assert.equal(Math.round(personal.top.percent100g), 783);
+  assert.equal(foodHighlights({ name: "Mystery", grams: 50 }, {}, {}).top, null);
+  assert.equal(itemMacros(kale).kcal, 98);
+  assert.equal(freshness(null).tone, "unknown"); assert.equal(freshness(daysFromNow(0)).label, "Use today");
+  assert.equal(freshness(daysFromNow(3)).tone, "soon"); assert.equal(freshness(daysFromNow(10)).tone, "fresh");
+  assert.equal(freshness(daysFromNow(-2)).tone, "past");
+});
+
+test("onboarding saves who the kitchen is for and preserves a family member's profile on resume", () => {
+  let state = upgradeState({ ...initialState(), profile: { name: 'You' }, items: [], logs: [], groceries: [] });
+  assert.throws(() => finishOnboardingStep(state, {}, -1, '2026-11-08'), /who this account/);
+  state = finishOnboardingStep(state, { accountFor: 'family' }, -1, '2026-11-08');
+  assert.equal(state.profile.accountFor, 'family');
+  assert.equal(state.onboarding.step, 0);
+  state = finishOnboardingStep(state, { name: 'Grandma June' }, 0, '2026-11-08');
+  assert.equal(state.profile.name, 'Grandma June');
+  assert.equal(state.profile.accountFor, 'family');
+  assert.equal(currentOnboardingStep(JSON.parse(JSON.stringify(state))), 1);
+  const resumed = finishOnboardingStep(state, { accountFor: 'myself' }, -1, '2026-11-08');
+  assert.equal(resumed.profile.accountFor, 'myself');
+  assert.equal(resumed.onboarding.step, 1);
+  assert.equal(resumed.profile.name, 'Grandma June');
+});

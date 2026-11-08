@@ -1,3 +1,4 @@
+import { importBackup } from "../lib/backup.mjs";
 import React, { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
 import { download } from "../lib/files.mjs";
@@ -388,8 +389,8 @@ export default function FoodModal({
                   ))}
                 </ol>
                 <p className="form-hint">
-                  Nutrition uses Health Canada CNF per-100 g reference averages.
-                  Optional toppings aren’t included.
+                  Nutrition is an estimate. Extra toppings and changes to the recipe
+                  can change the totals.
                 </p>
                 {missing.length ? (
                   <button
@@ -517,8 +518,8 @@ export default function FoodModal({
             <div className="info-banner">
               <Icon name="wifi" />
               <p>
-                After an initial online load, the app shell works offline. Your
-                records are saved on this device.
+                Open Refridge while connected before using it offline. Reconnect
+                to sync your saved changes with your account.
               </p>
             </div>
             <button className="btn primary wide" onClick={close}>
@@ -531,8 +532,8 @@ export default function FoodModal({
           <>
             <form onSubmit={submit}>
               <p className="modal-intro">
-                Records stay in this browser. Shared-fridge and trade
-                interactions are local demos; cloud syncing isn’t connected.
+                Manage your kitchen and keep a backup of your records.
+                Changes are saved to your signed-in account when connected.
               </p>
               <label>
                 Kitchen name
@@ -571,6 +572,19 @@ export default function FoodModal({
                 <Icon name="check" size={18} />
               </button>
             </form>
+            <div className="settings-import">
+              <strong>Restore a backup</strong>
+              <p>Import an exported Refridge JSON file. This replaces your personal food, grocery, profile, and history records. Your current login and live connections stay in place.</p>
+              <label className="field"><span>Import JSON backup</span><input type="file" accept=".json,application/json" onChange={async (e) => {
+                const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
+                try {
+                  if (file.size > 1500000) throw Error("Choose a backup smaller than 1.5 MB.");
+                  const imported = importBackup(await file.text(), state);
+                  if (!window.confirm(`Replace your personal records with ${file.name}? This includes ${imported.items.length} foods, ${imported.logs.length} diary entries, and ${imported.groceries.length} grocery items. Export your current data first if you want to keep a copy.`)) return;
+                  setState(imported); notify("Backup imported into your account"); close();
+                } catch (e) { setError(e.message); }
+              }} /></label>
+            </div>
             <div className="settings-export">
               <div>
                 <strong>Keep a copy</strong>

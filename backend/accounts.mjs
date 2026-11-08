@@ -1,3 +1,4 @@
+import { sampleState } from "./demo-state.mjs";
 import { randomBytes, randomUUID, createHash, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 const derive = promisify(scrypt);
@@ -49,6 +50,27 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
       const ip = process.env.VERCEL ? String(req.headers["x-vercel-forwarded-for"] || req.socket.remoteAddress) : req.socket.remoteAddress;
       await throttle(hash((signup ? "signup:" : "login:") + ip), signup ? 8 : 40);
       await throttle(hash("user:" + username), 10);
+      // Provision the explicitly requested demo once; subsequent logins preserve its edits.
+      if (username === "sample") {
+        const snapshot = await store.read();
+        const demo = Object.values(snapshot.accounts || {}).find((a) => a.username === "sample");
+        if (demo?.appState?.sampleAccount && !demo.appState.weightTracking) {
+          await store.mutate((state) => {
+            const current = state.accounts[demo.id];
+            if (!current.appState.weightTracking) { current.appState.weightTracking = sampleState(now()).weightTracking; current.revision = (current.revision || 0) + 1; }
+          });
+        }
+        if (!Object.values(snapshot.accounts || {}).some((a) => a.username === "sample")) {
+          const demoSalt = randomBytes(16).toString("hex");
+          const demoHash = await derive("1234567890", demoSalt, 64, { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 });
+          await store.mutate((state) => {
+            state.accounts ||= {};
+            if (Object.values(state.accounts).some((a) => a.username === "sample")) return;
+            const id = randomUUID();
+            state.accounts[id] = { id, username: "sample", salt: demoSalt, passwordHash: demoHash.toString("hex"), createdAt: now(), revision: 0, appState: sampleState(now()) };
+          });
+        }
+      }
       let state = await store.read();
       const existing = Object.values(state.accounts || {}).find((a) => a.username === username);
       const salt = signup ? randomBytes(16).toString("hex") : existing?.salt || "00000000000000000000000000000000";

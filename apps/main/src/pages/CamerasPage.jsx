@@ -252,8 +252,7 @@ function CaptureEvent({
       )}
       {event.status === "baseline" ? (
         <p className="form-hint">
-          Reference scene saved. Both views will be compared with the next
-          settled capture.
+          Starting photos saved. Your next photos will help spot what changed.
         </p>
       ) : !done ? (
         <form className="feature-form" onSubmit={confirm}>
@@ -317,18 +316,7 @@ function CaptureEvent({
                   defaultValue={daysFromNow(5)}
                 />
               </div>
-              <Field label="Reference container">
-                <select name="containerId" key={`${fridgeId}-${predictionIndex}`} defaultValue={prediction?.containerId || ""}>
-                  <option value="">Original packaging / none</option>
-                  {state.containers
-                    .filter((c) => c.fridgeId === fridgeId)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </Field>
+
             </>
           )}
           {direction === "in" && prediction && <div className="notice">
@@ -605,10 +593,8 @@ export default function CamerasPage({ state, setState, notify }) {
   return (
     <div className="feature-page">
       <Banner>
-        Real Wi-Fi image pairing. Run the included backend to connect phones;
-        static hosting alone cannot receive images. Cameras stay open during
-        capture. Automatic recognition requires a server-side vision API key;
-        uncertain food or weight stays in this review inbox.
+        Give each camera a clear view of your food and keep both phones open.
+        Review suggested changes here before adding or removing anything from your fridge.
       </Banner>
       {error && (
         <div className="error" role="alert">
@@ -660,11 +646,7 @@ export default function CamerasPage({ state, setState, notify }) {
                 : "Add GEMINI_API_KEY to the included Node server’s .env and restart it. No image analysis is available until a key is configured."}
             </p>
             <p className="form-hint">
-              Container reference photos and inside dimensions help estimate
-              portions. A readable package label or a food-specific density is
-              required for automatic grams. Food ownership comes from the
-              assigned container or the default owner of this session; faces are
-              not identified.
+              Check the food, amount, and owner before saving. You can correct any estimate.
             </p>
             <p>Top Camera identifies the food only. Side Camera determines its volume and amount only. Pair one of each role. Cameras with older names must be removed and paired again; then save a new reference scene.</p>
             {!session?.automation?.enabled ? (
@@ -675,7 +657,7 @@ export default function CamerasPage({ state, setState, notify }) {
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
                   />
-                  Send captured fridge photos and container reference photos to
+                  Send captured fridge photos to
                   the configured vision provider for analysis.
                 </label>
                 <label className="inline-toggle">
@@ -724,11 +706,9 @@ export default function CamerasPage({ state, setState, notify }) {
               </div>
             )}
             <p className="form-hint">
-              The first complete capture becomes the reference scene. Start both
-              cameras and leave motion capture enabled. Keep all phones
-              foregrounded and connected to this server over Wi-Fi. Ambiguous
-              scenes go to review; removing food does not automatically mean
-              eating it.
+              Start both cameras and keep their screens open. Take clear starting photos,
+              then let the cameras watch for changes. When food leaves the fridge,
+              you can choose whether it was eaten, moved, or discarded.
             </p>
           </Panel>
           <div className="feature-columns">
@@ -885,8 +865,8 @@ export default function CamerasPage({ state, setState, notify }) {
                 Open Camera Companion
               </a>
               <p className="form-hint">
-                On another phone, use this deployment’s /camera/ address. Share
-                only the temporary pairing code; it grants camera upload access.
+                Open Camera Companion on the phone you want to connect, then enter
+                your temporary pairing code. Keep the code private.
               </p>
             </Panel>
           </div>

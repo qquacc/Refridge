@@ -16,7 +16,7 @@ export default function WellbeingPage({ state, setState, notify }) {
       const input = { ...draft, date };
       saveCheckIn(entries, input, today());
       setState((s) => ({ ...s, wellbeing: { ...s.wellbeing, checkIns: saveCheckIn(s.wellbeing?.checkIns || [], input, today()) } }));
-      setError(""); notify("Well-being check-in saved to your account");
+      setError(""); notify("Wellbeing check-in saved to your account");
     } catch (e) { setError(e.message); }
   }
   return <div className="feature-page wellbeing-page">

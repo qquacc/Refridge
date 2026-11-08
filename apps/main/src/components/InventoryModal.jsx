@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Icon from "./Icon.jsx";
 import { Field } from "./FeatureUI.jsx";
 import { catalog, uid, daysFromNow } from "../data/food.mjs";
-import { putFood, allInventory, containerVolume } from "../lib/domain.mjs";
+import { putFood, allInventory } from "../lib/domain.mjs";
 export default function InventoryModal({
   model,
   state,
@@ -64,7 +64,7 @@ export default function InventoryModal({
         expires: String(f.get("expires")),
         ownerId: String(f.get("ownerId")),
         fridgeId,
-        containerId: String(f.get("containerId") || ""),
+        containerId: old?.containerId || "",
         nutritionSource: base?.nutritionSource || {
           publisher: "Manual label",
           dataset: "Custom food",
@@ -229,27 +229,9 @@ export default function InventoryModal({
               </select>
             </Field>
           </div>
-          <Field label="Container">
-            <select
-              name="containerId"
-              key={fridgeId}
-              defaultValue={
-                old?.fridgeId === fridgeId ? old?.containerId || "" : ""
-              }
-            >
-              <option value="">No container / original packaging</option>
-              {state.containers
-                .filter((c) => c.fridgeId === fridgeId)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} · {containerVolume(c)} mL
-                  </option>
-                ))}
-            </select>
-          </Field>
           <p className="form-hint">
-            Owner and expiry are confirmed by you. Camera-derived quantities
-            remain estimates and can be corrected here.
+            Check who the food belongs to and when you plan to use it.
+            You can adjust the amount whenever it changes.
           </p>
           <button className="btn primary wide" type="submit">
             {editing ? "Save food details" : "Add to my fridge"}

@@ -1,3 +1,6 @@
+import Icon from "../components/Icon.jsx";
+import { saveWeight } from "../lib/insights.mjs";
+import { today } from "../data/food.mjs";
 import React, { useState } from "react";
 import { Panel, Field, ErrorMessage } from "../components/FeatureUI.jsx";
 import {
@@ -31,13 +34,16 @@ export default function ProfilePage({ state, setState, notify }) {
         complete: true,
       };
       if (!profile.name) throw Error("Enter your display name.");
-      setState((s) => ({
+      setState((s) => {
+        const next = {
         ...s,
         profile,
         members: s.members.map((m) =>
           m.id === "me" ? { ...m, name: profile.name, avatar: photo } : m,
         ),
-      }));
+      };
+        return profile.weightKg && Number(profile.weightKg) !== Number(s.profile.weightKg) ? saveWeight(next, { date: today(), kg: profile.weightKg }, today()) : next;
+      });
       notify("Profile and dietary preferences saved");
     } catch (e) {
       setError(e.message);
@@ -60,8 +66,8 @@ export default function ProfilePage({ state, setState, notify }) {
                 className="profile-photo"
               />
             ) : (
-              <div className="profile-photo initials">
-                {state.profile.name[0]}
+              <div className="profile-photo profile-photo-placeholder" role="img" aria-label="No profile photo selected">
+                <Icon name="profile" size={36} />
               </div>
             )}
             <label className="file-label">
@@ -163,9 +169,9 @@ export default function ProfilePage({ state, setState, notify }) {
             </Field>
           </div>
           <p className="form-hint">
-            Energy targets use Health Canada equations for ages 14+; pregnancy,
-            lactation, and younger profiles use individually entered targets.
-            Gender identity and the equation reference are separate fields.
+            Your details help personalize food goals. If automatic goals aren’t
+            suitable for you, you can enter your own in Food goals. Your gender
+            and the reference used for estimates can be chosen separately.
           </p>
           <fieldset>
             <legend>Allergens to exclude from suggestions</legend>
@@ -206,9 +212,8 @@ export default function ProfilePage({ state, setState, notify }) {
             defaultValue={state.profile.allergies}
           />
           <p className="form-hint">
-            Known allergy words in notes also filter recipes. This checks recipe
-            ingredients, not cross-contact, package certification, or restaurant
-            preparation. Review labels for your specific allergy.
+            Tell us what to avoid so we can filter meal ideas. Always check labels
+            and how food was prepared, especially for allergies.
           </p>
           <button type="submit" className="btn primary">
             Save profile

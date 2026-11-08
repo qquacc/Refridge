@@ -1,3 +1,4 @@
+import FriendChat from "./components/FriendChat.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import WellbeingPage from "./pages/WellbeingPage.jsx";
 import "./styles/kitchen.css";
@@ -18,22 +19,45 @@ import GroceryPage from "./pages/GroceryPage.jsx";
 import NutritionPage from "./pages/NutritionPage.jsx";
 import CamerasPage from "./pages/CamerasPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
-import ContainersPage from "./pages/ContainersPage.jsx";
 import GoalsPage from "./pages/GoalsPage.jsx";
 import ChallengesPage from "./pages/ChallengesPage.jsx";
 import WrappedPage from "./pages/WrappedPage.jsx";
 import MorePage, { featureNav } from "./pages/MorePage.jsx";
 const nav = [
-  ["home", "Home"],
-  ["fridge", "My fridge"],
-  ["meals", "Meal plans"],
-  ["list", "Groceries"],
-  ...featureNav,
+  ["home", "Fridge"],
+  ["activity", "Today"],
+  ["fridge", "Inventory"],
+  ["cameras", "Scan"],
+  ["meals", "Recipes"],
+  ["list", "Grocery"],
+  ["profile", "Profile & goals"],
+  ["kitchens", "Kitchens"],
+  ["challenges", "Compete"],
+  ["more", "More"],
 ];
+function KitchensPage(props) {
+  const [section, setSection] = useState("connections");
+  return <div className="feature-page"><div className="tabs" aria-label="Kitchens sections">
+    <button className={section === "connections" ? "active" : ""} onClick={() => setSection("connections")}>Connections & trades</button>
+    <button className={section === "meals" ? "active" : ""} onClick={() => setSection("meals")}>Shared meal plans</button>
+    <button className={section === "messages" ? "active" : ""} onClick={() => setSection("messages")}>Messages</button>
+    {section === "meals" && <button className="text-btn" onClick={() => props.navigate("challenges")}>This Week’s Leaderboard ↗</button>}
+  </div>{section === "connections" ? <InventoryPage {...props} community /> : section === "messages" ? <FriendChat {...props} onMealCollab={() => setSection("meals")} /> : <MealsPage {...props} community />}</div>;
+}
+function ProfileAndGoals(props) {
+  const goals = props.activeProfileTab === "goals";
+  return <div className="feature-page profile-goals-page">
+    <nav className="profile-goals-tabs" aria-label="Profile and goals">
+      <button type="button" aria-current={!goals ? "page" : undefined} onClick={() => props.navigate("profile")}><Icon name="profile" /> Profile</button>
+      <button type="button" aria-current={goals ? "page" : undefined} onClick={() => props.navigate("goals")}><Icon name="goals" /> Goals</button>
+    </nav>
+    {goals ? <GoalsPage {...props} /> : <ProfilePage {...props} />}
+  </div>;
+}
 const mobileNav = [
-  ["home", "Home"],
-  ["fridge", "Fridge"],
-  ["meals", "Meals"],
+  ["home", "Fridge"],
+  ["activity", "Today"],
+  ["fridge", "Inventory"],
   ["list", "Groceries"],
   ["more", "More"],
 ];
@@ -42,7 +66,8 @@ const meta = {
     "Your fridge, at a glance.",
     "A place for everything, and something good to make.",
   ],
-  fridge: ["My fridge", "Food, ownership, and in-person exchanges."],
+  kitchens: ["Kitchens", "Connect with friends and family to share your fridge."],
+  fridge: ["Inventory", "Food, ownership, and in-person exchanges."],
   meals: [
     "Make a plan. Share a meal.",
     "Ingredient-aware ideas for you and your shared fridges.",
@@ -52,21 +77,17 @@ const meta = {
     "Usual foods, measured in grams, ready when stock runs low.",
   ],
   activity: [
-    "Know your nutrients",
-    "Canadian nutrition references, with missing data clearly marked.",
+    "Your day, nourished.",
+    "Logged meals, daily macros, and a closer look at your micronutrients.",
   ],
   cameras: [
     "Two angles. One inventory.",
     "Connect camera phones and enable automatic food-change analysis.",
   ],
-  wellbeing: ["Well-being & trends", "Small check-ins and a longer view of your recorded habits."],
+  wellbeing: ["Wellbeing & trends", "Small check-ins and a longer view of your recorded habits."],
   profile: [
     "Your profile",
     "Personal details, dietary restrictions, and nutrition references.",
-  ],
-  containers: [
-    "A reference for every portion",
-    "Photos, dimensions, and the containers you actually own.",
   ],
   goals: [
     "Food goals & taste",
@@ -77,7 +98,7 @@ const meta = {
     "Earn points from recorded actions and compare time periods.",
   ],
   wrapped: [
-    "Food Wrapped",
+    "Refridge Wrapped",
     "A monthly picture of your food, nutrients, and cuisines.",
   ],
   more: ["Your kitchen tools", "Everything else, one tap away."],
@@ -161,7 +182,7 @@ export default function App({ account, onLogout }) {
   const food = getFridgeItems(state),
     soon = food.filter((i) => i.expires && daysLeft(i.expires) <= 2),
     remaining = state.groceries.length;
-  const common = { state, setState, navigate, setModal, notify, addGroceries };
+  const common = { state, setState, navigate, setModal, notify, addGroceries, activeProfileTab: page === "goals" ? "goals" : "profile" };
   const pages = {
     home: OverviewPage,
     wellbeing: WellbeingPage,
@@ -170,9 +191,9 @@ export default function App({ account, onLogout }) {
     list: GroceryPage,
     activity: NutritionPage,
     cameras: CamerasPage,
-    profile: ProfilePage,
-    containers: ContainersPage,
-    goals: GoalsPage,
+    profile: ProfileAndGoals,
+    kitchens: KitchensPage,
+    goals: ProfileAndGoals,
     challenges: ChallengesPage,
     wrapped: WrappedPage,
     more: MorePage,
@@ -218,7 +239,7 @@ export default function App({ account, onLogout }) {
         <button className="workspace" onClick={() => navigate("profile")}>
           <span className="avatar">{avatar}</span>
           <div>
-            <strong>{state.profile.name}'s kitchen</strong>
+            <strong>{state.household || `${state.profile.name}'s kitchen`}</strong>
             <small>
               {state.profile.complete
                 ? "Profile & dietary preferences"
@@ -228,9 +249,12 @@ export default function App({ account, onLogout }) {
         </button>
         <nav aria-label="Kitchen navigation">
           {nav.map(([id, label]) => (
+            <React.Fragment key={id}>
+            {id === "kitchens" && <div className="sidebar-community-divider" role="separator" aria-label="Community" />}
             <button
               key={id}
-              className={"nav-item " + (page === id ? "active" : "")}
+              className={"nav-item " + (page === id || (id === "profile" && page === "goals") || (id === "more" && ["wellbeing", "wrapped"].includes(page)) ? "active" : "")}
+              aria-current={page === id || (id === "profile" && page === "goals") || (id === "more" && ["wellbeing", "wrapped"].includes(page)) ? "page" : undefined}
               onClick={() => navigate(id)}
             >
               <Icon name={id} />
@@ -239,6 +263,7 @@ export default function App({ account, onLogout }) {
                 <span className="nav-count">{remaining}</span>
               )}
             </button>
+            </React.Fragment>
           ))}
         </nav>
         <div className="sidebar-bottom">
@@ -266,7 +291,7 @@ export default function App({ account, onLogout }) {
         <header className="topbar">
           <div className="breadcrumb">
             My kitchen <span>/</span>
-            <strong>{nav.find((n) => n[0] === page)?.[1] || "More"}</strong>
+            <strong>{[...nav, ...featureNav].find((n) => n[0] === page)?.[1] || "More"}</strong>
           </div>
           <div className="topbar-right">
             <button className="btn outline header-logout" disabled={signingOut} onClick={signOut}>{signingOut ? "Logging out…" : "Log out"}</button>
@@ -283,6 +308,7 @@ export default function App({ account, onLogout }) {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
+          {state.sampleAccount && page !== "home" && <p className="sample-account-note">Sample account · Food history, wellbeing check-ins, and friend activity are demonstration data.</p>}
           {cloud.error && <div className="error" role="alert">Account sync: {cloud.error} <button type="button" className="text-btn" onClick={() => cloud.flush().catch(() => {})}>Retry save</button></div>}
           {offline && (
             <div className="notice">

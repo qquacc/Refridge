@@ -9,13 +9,15 @@ export default function MealsPage({
   setModal,
   addGroceries,
   notify,
+  community = false,
 }) {
   const [visible, setVisible] = useState(6);
-  const [mode, setMode] = useState("For me"),
+  const [mode, setMode] = useState(community ? "Cook together" : "For me"),
     [ids, setIds] = useState([state.activeFridgeId]),
     [cuisine, setCuisine] = useState("All"),
     [servings, setServings] = useState(2);
-  const selected = mode === "For me" ? [state.activeFridgeId] : ids;
+  const personalId = state.fridges.find((f) => f.id === state.activeFridgeId && f.ownerId === "me")?.id || state.fridges.find((f) => f.ownerId === "me")?.id;
+  const selected = mode === "For me" ? [personalId] : ids;
   const all = allowedRecipes(state, selected);
   const recipes = all.filter((r) => cuisine === "All" || r.cuisine === cuisine);
   const pool = activeInventory(state, selected).filter(
@@ -47,25 +49,14 @@ export default function MealsPage({
   }
   return (
     <div className="feature-page">
-      <div className="tabs" role="group" aria-label="Meal planning mode">
-        {["For me", "Cook together"].map((m) => (
-          <button
-            key={m}
-            className={mode === m ? "active" : ""}
-            onClick={() => setMode(m)}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
       {mode === "Cook together" && (
         <Panel
           title="Cook together"
           subtitle="Pool selected fridges for a shared meal. Plans reserve no food; ask each owner before using it."
         >
           <p className="form-hint">
-            Friend fridges are editable local examples. These plans and requests
-            are saved on this device.
+            Choose the kitchens you’d like to cook with, then agree on what
+            each person will bring before you start.
           </p>
           <div className="fridge-choices">
             {state.fridges
@@ -125,6 +116,7 @@ export default function MealsPage({
             },
             pool,
           );
+          const addedToGrocery = missing.length > 0 && missing.every(([name]) => state.groceries.some((item) => !item.checked && item.name.toLowerCase() === name.toLowerCase()));
           const n = recipeNutrition(r);
           return (
             <article className="planned-recipe" key={r.id}>
@@ -165,9 +157,8 @@ export default function MealsPage({
                   ))}
                 </ol>
                 <p className="form-hint">
-                  Independent adaptation inspired by Canada’s Food Guide. CNF
-                  averages estimate ingredient nutrition; cooking can change
-                  yield.
+                  Use these recipes as a starting point and adjust them to your taste.
+                  Nutrition is approximate and doesn’t include extra toppings.
                 </p>
                 <a href={r.sourceUrl} target="_blank" rel="noreferrer">
                   Read the original recipe ↗
@@ -193,13 +184,15 @@ export default function MealsPage({
                 {missing.length > 0 && (
                   <button
                     className="text-btn"
+                    disabled={addedToGrocery}
+                    aria-live="polite"
                     onClick={() =>
                       addGroceries(
                         missing.map(([name, grams]) => ({ name, grams })),
                       )
                     }
                   >
-                    Shop missing foods
+                    {addedToGrocery ? "Added to Grocery" : "Shop missing foods"}
                   </button>
                 )}
               </div>
@@ -218,7 +211,7 @@ export default function MealsPage({
           or review your profile.
         </div>
       )}
-      <Panel
+      {community && <Panel
         title="Saved shared meal plans"
         subtitle="Agreement happens with the food owners before cooking."
       >
@@ -253,7 +246,7 @@ export default function MealsPage({
             Choose Cook together and save a recipe for two or more fridges.
           </p>
         )}
-      </Panel>
+      </Panel>}
     </div>
   );
 }

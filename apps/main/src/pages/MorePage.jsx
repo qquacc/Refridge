@@ -1,13 +1,13 @@
 import React from "react";
 import Icon from "../components/Icon.jsx";
 export const featureNav = [
-  ["activity", "Nutrition"],
-  ["wellbeing", "Well-being & trends"],
+  ["kitchens", "Kitchens"],
+  ["activity", "Today"],
+  ["wellbeing", "Wellbeing & trends"],
   ["cameras", "Paired cameras"],
-  ["containers", "Containers"],
   ["goals", "Food goals"],
   ["challenges", "Challenges"],
-  ["wrapped", "Food Wrapped"],
+  ["wrapped", "Refridge Wrapped"],
   ["profile", "My profile"],
 ];
 export default function MorePage({ navigate }) {

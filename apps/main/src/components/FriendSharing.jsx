@@ -21,7 +21,7 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
   return (
     <Panel
       title="Connect friends & family"
-      subtitle="Both people use the same running server. Each main app has its own device account and camera session."
+      subtitle="Invite someone you know, or enter their invitation code to connect your kitchens."
     >
       {error && (
         <p className="error" role="alert">
@@ -133,9 +133,8 @@ export default function FriendSharing({ state, setState, navigate, notify }) {
         </>
       )}
       <p className="form-hint">
-        The backend persists device identities and accepted connections. There
-        is no email/password recovery. Friend data refreshes while the main app
-        is open; push notifications are not configured.
+        Connect with people you know to plan meals, share ideas, and arrange
+        food exchanges. Keep the app open to see their latest updates.
       </p>
     </Panel>
   );

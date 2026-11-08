@@ -7,6 +7,7 @@ import {
   allowedRecipes,
   reconcileGroceries,
   completeGrocery,
+  clearShoppingList,
   reconcileChallenges,
   periodKey,
   pointsFor,
@@ -349,4 +350,19 @@ test("newly observed foods become usual stock and manual amounts are preserved",
   assert.equal(s.staples[0].usualGrams, 250);
   s.staples[0] = { ...s.staples[0], usualGrams: 100, manual: true };
   assert.equal(learnUsualStock(s).staples[0].usualGrams, 100);
+});
+
+test("clearing groceries prevents immediate refill without disabling regular foods or altering inventory", () => {
+  const state = upgradeState(initialState());
+  state.items = [];
+  state.staples = [{ id: 'milk', name: 'Milk', enabled: true, usualGrams: 500, minimumGrams: 100 }];
+  const populated = reconcileGroceries(state);
+  assert(populated.groceries.some((g) => g.name === 'Milk'));
+  const cleared = clearShoppingList(populated);
+  assert.equal(reconcileGroceries(cleared).groceries.length, 0);
+  assert.deepEqual(cleared.items, populated.items);
+  assert.deepEqual(cleared.completedGroceries, populated.completedGroceries);
+  assert.equal(cleared.staples[0].enabled, true);
+  const expired = { ...cleared, grocerySettings: { pauseUntil: Date.now() - 1 } };
+  assert(reconcileGroceries(expired).groceries.some((g) => g.name === 'Milk'));
 });

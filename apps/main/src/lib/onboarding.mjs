@@ -1,3 +1,4 @@
+import { saveWeight } from "./insights.mjs";
 export const onboardingQuestions = ["What’s your name?", "How old are you?", "What’s your weight?", "How tall are you?", "What’s your gender?", "How do you like to eat?", "Any ingredients you need to avoid?", "How active is a typical day?", "What matters most to you?"];
 export function currentOnboardingStep(state) {
   const saved = state.onboarding?.step || 0;
@@ -6,6 +7,10 @@ export function currentOnboardingStep(state) {
 }
 export function finishOnboardingStep(state, draft, step, today, skip = false) {
   const profile = { ...state.profile };
+  if (step === -1) {
+    if (!["myself", "family"].includes(draft.accountFor)) throw Error("Choose who this account is for.");
+    return { ...state, profile: { ...profile, accountFor: draft.accountFor }, onboarding: { ...state.onboarding, version: 2, completed: false, step: currentOnboardingStep(state) } };
+  }
   if (step === 0) {
     if (!String(draft.name || "").trim()) throw Error("Enter the name you’d like us to use.");
     profile.name = String(draft.name).trim().slice(0, 80);
@@ -42,5 +47,6 @@ export function finishOnboardingStep(state, draft, step, today, skip = false) {
   }
   const completed = step === onboardingQuestions.length - 1;
   if (completed) profile.complete = true;
-  return { ...state, profile, members: state.members.map((m) => m.id === "me" ? { ...m, name: profile.name } : m), onboarding: { version: 2, completed, step: completed ? 0 : step + 1 } };
+  const next = { ...state, profile, members: state.members.map((m) => m.id === "me" ? { ...m, name: profile.name } : m), onboarding: { version: 2, completed, step: completed ? 0 : step + 1 } };
+  return step === 2 && !skip && Number(profile.weightKg) > 0 ? saveWeight(next, { date: today, kg: profile.weightKg }, today) : next;
 }

@@ -3,6 +3,7 @@ import { confirmedPredictedFood, enrichFoodPredictions } from "./predictions.mjs
 import { FileImages } from "./images.mjs";
 import {
   socialView,
+  sendFriendMessage,
   updateSocial,
   inviteFriend,
   joinFriend,
@@ -358,6 +359,7 @@ export function createApp({
           const result = await store.mutate((state) => {
             const { session: s } = findAuth(state, req, "owner");
             try {
+              if (p === "/api/social/messages") return sendFriendMessage(state, s, input, now());
               if (p === "/api/social/profile") return updateSocial(s, input);
               if (p === "/api/social/invite") return inviteFriend(s, now());
               if (p === "/api/social/join")

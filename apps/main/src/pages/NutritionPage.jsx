@@ -7,9 +7,12 @@ import {
   nutrientInfo,
   microTargets,
   automaticTargets,
+  macroIds,
 } from "../../../../packages/shared/nutrition.mjs";
+const progressColor = (ratio) => ratio < .25 ? "#ef2638" : ratio < .75 ? "#f58a12" : "#098d37";
 export default function NutritionPage({ state, navigate, setModal }) {
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("Micronutrients");
   const [date, setDate] = useState(today());
   const logs = state.logs.filter(
       (l) => (l.userId || "me") === "me" && l.date === date,
@@ -25,9 +28,9 @@ export default function NutritionPage({ state, navigate, setModal }) {
           Math.round(known.reduce((a, l) => a + l.nutrients[k], 0));
   };
   return (
-    <div className="feature-page">
+    <div className="feature-page today-page">
       <Panel
-        title="Your nutrition diary"
+        title={date === today() ? "Today’s nutrition" : "Daily nutrition"}
         subtitle="Estimates from logged food, with the exact CNF reference attached."
         action={
           <input
@@ -45,14 +48,20 @@ export default function NutritionPage({ state, navigate, setModal }) {
             ["carbs", "Carbohydrates", "g"],
             ["fat", "Fat", "g"],
             ["fiber", "Fibre", "g"],
-          ].map(([id, label, unit]) => (
+          ].map(([id, label, unit]) => {
+            const known = logs.filter((l) => Number.isFinite(l.nutrients?.[id]));
+            const amount = known.reduce((sum, l) => sum + l.nutrients[id], 0);
+            const target = Number(state.goals[id]);
+            const ratio = target > 0 ? amount / target : 0;
+            return <div className="today-macro-card" key={id}>
             <Metric
-              key={id}
               label={label}
               value={`${sum(id)} ${unit}`}
               note={`${state.goals[id]} ${unit} ${state.profile.targetMode === "manual" ? "custom" : calc.available ? "calculated" : "example"} daily target`}
             />
-          ))}
+            <div className="today-nutrient-track" aria-hidden="true"><span style={{ width: `${known.length && target > 0 ? Math.min(100, Math.max(0, ratio * 100)) : 0}%`, backgroundColor: progressColor(ratio) }} /></div>
+            </div>;
+          })}
         </div>
         <div className="button-row">
           <button
@@ -67,8 +76,8 @@ export default function NutritionPage({ state, navigate, setModal }) {
         </div>
       </Panel>
       <Panel
-        title="All 152 Canadian food-composition fields"
-        subtitle="Includes vitamins, minerals, amino acids, fatty acids, sugars, caffeine and more. Not every food contains a measured value for every field."
+        title="Nutrients"
+        subtitle="Explore your recorded intake. Open any nutrient for its role, reference, and data coverage."
         action={
           <input
             aria-label="Find nutrient"
@@ -80,13 +89,21 @@ export default function NutritionPage({ state, navigate, setModal }) {
       >
         <div className="info-banner">
           <p>
-            Unknown is not zero. A low logged day does not diagnose a
-            deficiency; risk descriptions refer to persistent inadequate intake.
-            CNF contains 152 fields, not every compound that exists in food.
+            Log your meals to build a clearer picture over time. Missing values
+            mean we don’t have that information yet, and one day’s totals don’t tell the whole story.
           </p>
         </div>
+        <div className="today-nutrient-filters" aria-label="Nutrient filters">
+          {["Biggest gaps", "Macros", "Micronutrients", "All nutrients"].map((name) => <button key={name} type="button" aria-pressed={filter === name} onClick={() => setFilter(name)}>{name}</button>)}
+        </div>
+        {filter === "Biggest gaps" && !nutrientDefinitions.some((d) => targets[d.id] && Number.isFinite(total.values[d.id]) && total.coverage[d.id] === logs.length && total.values[d.id] < targets[d.id]) && <p className="body-copy">No gaps to show from complete recorded values. Log food to start tracking; missing values remain unknown.</p>}
         <div className="nutrient-table">
           {nutrientDefinitions
+            .filter((d) => filter === "Macros" ? Object.values(macroIds).includes(d.id)
+              : filter === "Micronutrients" ? !!targets[d.id] && !Object.values(macroIds).includes(d.id)
+              : filter === "Biggest gaps" ? !!targets[d.id] && Number.isFinite(total.values[d.id]) && total.coverage[d.id] === logs.length && total.values[d.id] < targets[d.id]
+              : true)
+            .sort((a, b) => filter === "Biggest gaps" ? total.values[a.id] / targets[a.id] - total.values[b.id] / targets[b.id] : 0)
             .filter((d) =>
               (d.name + " " + nutrientInfo(d).name)
                 .toLowerCase()
@@ -113,6 +130,7 @@ export default function NutritionPage({ state, navigate, setModal }) {
                           ? "Known values"
                           : "No complete value"}
                     </small>
+                    <span className="today-nutrient-track" aria-hidden="true"><span style={{ width: `${target && known ? Math.min(100, Math.max(0, total.values[d.id] / target * 100)) : 0}%`, backgroundColor: progressColor(target && known ? total.values[d.id] / target : 0) }} /></span>
                   </summary>
                   <div>
                     <p>{info.role}</p>

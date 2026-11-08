@@ -1,8 +1,9 @@
 import React from "react";
 const paths = {
+  kitchens: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
   wellbeing: "M3 12h4l3-7 4 14 3-7h4",
   cameras: "M2 6h7l2-3h4l2 3h5v15H2z M8 13a4 4 0 1 0 8 0 4 4 0 0 0-8 0 M18 9h1",
-  profile: "M9 3h6l3 5-3 5H9L6 8z M3 22v-3l6-3h6l6 3v3z",
+  profile: "M16 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0 M4 22v-3a8 8 0 0 1 16 0v3",
   containers: "M3 7 12 2l9 5v12l-9 4-9-4z M3 7l9 5 9-5 M12 12v11 M7 5l10 5",
   goals: "M4 22V3h15l-3 5 3 5H4 M8 18h12 M17 15l3 3-3 3",
   challenges:
@@ -11,9 +12,9 @@ const paths = {
   more: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
   home: "M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",
   fridge: "M5 3h14v18H5z M5 10h14 M8 6v2 M8 13v4",
-  meals: "M4 3v6a3 3 0 0 0 6 0V3 M7 3v18 M19 21V3c-5 3-5 10 0 10",
-  list: "M9 6h12 M9 12h12 M9 18h12 M3 6l1 1 2-2 M3 12l1 1 2-2 M3 18l1 1 2-2",
-  activity: "m3 12 4 0 3-8 4 16 3-8h4",
+  meals: "M6 14a4 4 0 0 1-1-7 4 4 0 0 1 7-3 4 4 0 0 1 7 3 4 4 0 0 1-1 7v7H6z M6 17h12",
+  list: "M3 9h18l-3 12H6z M8 3 5 9 M16 3l3 6 M9 12v5 M15 12v5 M2 9h20",
+  activity: "M8 3h8v3H8z M8 5H5v17h14V5h-3 M8 11h8 M8 15h8 M8 19h5",
   plus: "M12 5v14 M5 12h14",
   arrow: "M5 12h14 M13 6l6 6-6 6",
   leaf: "M20 3C7 2 2 9 6 16s16 3 14-13Z M5 21 16 9",

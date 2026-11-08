@@ -77,7 +77,7 @@ export function reconcileGroceries(s) {
   const pending = s.groceries.filter((g) => !g.checked && !g.auto),
     generated = [];
   for (const staple of s.staples || []) {
-    if (!staple.enabled) continue;
+    if (!staple.enabled || (s.grocerySettings?.pauseUntil || 0) > Date.now()) continue;
     const available = items
       .filter((i) => i.name === staple.name)
       .reduce((a, i) => a + i.grams, 0);
@@ -104,6 +104,9 @@ export function reconcileGroceries(s) {
       });
   }
   return { ...s, groceries: [...pending, ...generated] };
+}
+export function clearShoppingList(s, now = Date.now()) {
+  return { ...s, groceries: [], grocerySettings: { ...s.grocerySettings, pauseUntil: now + 12 * 60 * 60 * 1000 } };
 }
 export function completeGrocery(s, id) {
   const item = s.groceries.find((g) => g.id === id);
@@ -216,7 +219,7 @@ export function reconcileChallenges(s) {
     ...c,
     assignmentId: today() + ":" + c.id,
     date: today(),
-    completed: c.test(s),
+    completed: c.test(s) || points.some((p) => p.id === today() + ":" + c.id && (p.userId || "me") === "me"),
   }));
   for (const c of assigned)
     if (c.completed && !points.some((p) => p.id === c.assignmentId))

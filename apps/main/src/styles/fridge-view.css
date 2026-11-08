@@ -1,0 +1,207 @@
+/* Home-screen fridge, drawn as a flat illustration: mustard frame, slate interior,
+   white shelves, two frosted lower drawers and an open blue door with white trays.
+   The front doors swing open each time the page mounts. */
+.rf-fridge, .rf-peek { --tone-fresh: #5c9a6b; --tone-soon: #e0a22e; --tone-urgent: #e4672f; --tone-past: #b6412f; --tone-unknown: #a9b2a5; }
+.rf-fridge {
+  --frame: #f4bf3a; --frame-dark: #e2a623; --slate: #93a8ac; --slate-deep: #849a9f; --shelf: #f8fafa; --door: #bfd7da; --door-deep: #a9c7cb;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px;
+}
+.rf-topbar { display: flex; align-items: center; gap: 14px; padding: 0 2px; flex-shrink: 0; }
+.rf-brand { display: flex; align-items: center; gap: 9px; min-width: 0; margin-right: auto; }
+.rf-brand strong { font-size: 13px; color: #2b463a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
+.rf-led { width: 7px; height: 7px; border-radius: 50%; background: #78c58a; box-shadow: 0 0 0 3px rgba(120, 197, 138, .2), 0 0 8px #8fe0a1; flex-shrink: 0; }
+.rf-legend { display: flex; gap: 12px; font-size: 10px; color: #6d7a69; }
+.rf-legend span { display: flex; align-items: center; gap: 5px; }
+.rf-legend span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tone); }
+.rf-topbar select { background: #fff; color: #2b463a; border: 1px solid #cfd8cc; padding: 6px 9px; font-size: 11px; max-width: 170px; }
+.tone-fresh { --tone: var(--tone-fresh); } .tone-soon { --tone: var(--tone-soon); } .tone-urgent { --tone: var(--tone-urgent); }
+.tone-past { --tone: var(--tone-past); } .tone-unknown { --tone: var(--tone-unknown); }
+
+/* Overall unit */
+.rf-stage { flex: 1; min-height: 0; display: flex; justify-content: center; }
+.rf-unit { position: relative; width: 100%; max-width: 1040px; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) clamp(118px, 31%, 330px); }
+.rf-unit::after { content: ""; position: absolute; left: 3%; right: 10%; bottom: -6px; height: 10px; border-radius: 50%; background: radial-gradient(closest-side, rgba(40, 60, 50, .22), transparent); z-index: -1; }
+
+/* Cabinet: yellow frame with an upper and a lower compartment */
+.rf-cabinet {
+  position: relative; min-height: 0; display: grid; grid-template-rows: minmax(0, 2.7fr) minmax(0, 1fr); gap: clamp(8px, 1.4vh, 14px);
+  padding: clamp(8px, 1.4vh, 14px); background: var(--frame); border-radius: 12px 4px 4px 12px;
+  box-shadow: inset 0 0 0 2px var(--frame-dark), inset -6px 0 0 rgba(0, 0, 0, .04);
+}
+.rf-compartment { position: relative; min-height: 0; display: grid; overflow: hidden; border-radius: 4px; background: linear-gradient(180deg, var(--slate) 0%, var(--slate-deep) 100%); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .85), inset 0 8px 18px -10px rgba(20, 40, 45, .45); }
+.rf-compartment.upper { grid-template-rows: repeat(3, minmax(0, 1fr)) minmax(0, 1.35fr); padding: 3px 3px 0; }
+.rf-compartment.lower { grid-template-rows: 1fr 1fr; gap: 6px; padding: 7px 8px 8px; }
+/* Interior starts dim and lights up as the door opens */
+.rf-compartment::after { content: ""; position: absolute; inset: 0; background: #1e2c2f; opacity: 0; pointer-events: none; z-index: 6; animation: rf-light-on .88s ease-out .69s backwards; }
+@keyframes rf-light-on { from { opacity: .55; } }
+.rf-lamp { position: absolute; top: 3px; left: 50%; width: 22%; height: 4px; transform: translateX(-50%); border-radius: 0 0 4px 4px; background: #fffbe6; box-shadow: 0 0 22px 8px rgba(255, 250, 220, .55); pointer-events: none; z-index: 1; }
+
+/* Zones */
+.rf-zone { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.rf-zone-tag { position: absolute; top: 6px; left: 8px; z-index: 3; display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 600; color: #34494d; background: rgba(255, 255, 255, .72); padding: 2px 7px; border-radius: 9px; white-space: nowrap; max-width: calc(100% - 16px); overflow: hidden; pointer-events: none; }
+.rf-zone-tag > span { font-size: 10px; }
+.rf-zone-tag b { font-weight: 600; color: #75898d; }
+.rf-zone-tag i { font-style: normal; color: #b4552f; }
+.rf-zone-tag i::before { content: "· "; color: #75898d; }
+
+.rf-row { flex: 1; min-height: 0; display: flex; align-items: flex-end; gap: 2px; padding: 22px 10px 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: none; }
+.rf-row::-webkit-scrollbar { display: none; }
+.rf-row.fade-right { mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.rf-row.fade-left { mask-image: linear-gradient(90deg, transparent, #000 15%); }
+.rf-row.fade-left.fade-right { mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.rf-empty { align-self: center; margin: auto; font-size: 10px; color: rgba(255, 255, 255, .7); font-style: italic; }
+
+/* White shelves */
+.place-shelf .rf-row { padding-bottom: clamp(8px, 1.3vh, 12px); }
+.place-shelf::after { content: ""; position: absolute; left: -3px; right: -3px; bottom: 0; height: clamp(7px, 1.2vh, 11px); background: var(--shelf); border-radius: 1px; box-shadow: 0 3px 0 rgba(40, 60, 65, .14); pointer-events: none; z-index: 2; }
+.rf-split { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; position: relative; }
+.rf-split::before { content: ""; position: absolute; left: 50%; top: 14%; bottom: 14px; width: 0; border-left: 2px dashed rgba(255, 255, 255, .35); }
+.rf-split .place-shelf::after { left: 0; right: 0; }
+.rf-split .rf-zone:first-child::after { left: -3px; } .rf-split .rf-zone:last-child::after { right: -3px; }
+
+/* Frosted lower drawers */
+.place-drawer { border-radius: 4px; background: rgba(255, 255, 255, .1); }
+.place-drawer .rf-row { padding: 8px 110px 4px 14px; align-items: flex-end; }
+.place-drawer .rf-zone-tag { top: auto; bottom: 7px; left: auto; right: 10px; background: rgba(255, 255, 255, .7); }
+.rf-drawer-front { position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 4px; border: 2px solid rgba(255, 255, 255, .75);
+  /* Equal diagonal bands straddle the drawer's central vertical axis. */
+  background: linear-gradient(115deg, rgba(255, 255, 255, .34) 0 39%, rgba(255, 255, 255, .21) 39% 43%, rgba(255, 255, 255, .34) 43% 57%, rgba(255, 255, 255, .21) 57% 61%, rgba(255, 255, 255, .34) 61%); }
+.rf-drawer-front i { position: absolute; top: -2px; left: 50%; width: 34px; height: 8px; transform: translateX(-50%); background: #fff; border-radius: 0 0 6px 6px; }
+
+/* Open door with white trays */
+.rf-door { position: relative; min-height: 0; display: grid; grid-template-rows: minmax(0, 2.7fr) minmax(0, 1fr); gap: 0; perspective: 1600px; perspective-origin: 0% 50%; }
+.rf-door-leaf { position: relative; min-height: 0; transform-origin: left center; background: linear-gradient(90deg, #d4e5e7 0, #d4e5e7 7px, var(--door) 7px, var(--door) 70%, var(--door-deep)); box-shadow: inset -2px 0 0 rgba(255, 255, 255, .5); animation: rf-door-in 1.02s cubic-bezier(0, 0, .4663, 1) 1.07s backwards; }
+.rf-door-leaf.upper { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); padding: clamp(10px, 2vh, 22px) 14px clamp(10px, 2vh, 22px) 0; border-radius: 0 10px 3px 0; }
+.rf-door-leaf.lower { border-radius: 0 3px 10px 0; border-top: 3px solid var(--frame); animation-delay: 1.196s; }
+@keyframes rf-door-in { 0% { transform: rotateY(-89deg); filter: brightness(.75); opacity: 0; } 6% { opacity: 1; } }
+.place-tray .rf-row { flex-wrap: nowrap; justify-content: center; padding: 16px 6px 9px 12px; }
+.place-tray .rf-zone-tag { top: auto; bottom: calc(clamp(15px, 2.6vh, 24px) / 2); left: 50%; transform: translate(-50%, 50%); background: none; padding: 0; z-index: 4; color: #151b18; font-size: 9px; }
+.place-tray .rf-zone-tag b { color: #151b18; }
+.place-tray .rf-zone-tag > span { display: none; }
+.rf-tray-front { position: absolute; left: 0; right: 0; bottom: 0; height: clamp(15px, 2.6vh, 24px); z-index: 2; pointer-events: none; background: linear-gradient(180deg, #fff 0 40%, #f2f6f6 40%); border-radius: 1px 2px 2px 1px; box-shadow: 0 3px 0 rgba(60, 90, 95, .14); }
+.rf-tray-side { position: absolute; right: -14px; bottom: 0; width: 14px; height: clamp(15px, 2.6vh, 24px); z-index: 1; pointer-events: none; background: #a9bfc2; clip-path: polygon(0 0, 100% 22%, 100% 100%, 0 100%); }
+
+/* Closed front doors that swing toward the viewer and away on the right hinge */
+.rf-front { position: absolute; inset: 0; z-index: 20; display: grid; grid-template-rows: minmax(0, 2.7fr) minmax(0, 1fr); gap: 3px; pointer-events: none; perspective: 5000px; perspective-origin: 100% 50%; animation: rf-gone 0s linear 1.8s forwards; }
+.rf-leaf { position: relative; transform-origin: right center; background: linear-gradient(90deg, var(--door-deep), var(--door) 22%, #cfe2e4 70%, var(--door)); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45); animation: rf-front-open .82s cubic-bezier(.42, 0, 1, 1) .25s forwards; }
+.rf-leaf.upper { border-radius: 12px 4px 3px 4px; } .rf-leaf.lower { border-radius: 4px 3px 4px 12px; animation-delay: .376s; }
+.rf-leaf i { position: absolute; left: 7%; width: 7px; border-radius: 4px; background: #eef5f6; box-shadow: 2px 0 0 rgba(60, 90, 95, .2); }
+.rf-leaf.upper i { bottom: 10%; height: 26%; } .rf-leaf.lower i { top: 14%; height: 40%; }
+.rf-leaf::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, rgba(20, 35, 40, .45), rgba(20, 35, 40, .1)); opacity: 0; animation: rf-shade .82s ease-in .25s forwards; }
+.rf-leaf.lower::after { animation-delay: .376s; }
+/* Matching ease-in/out velocities carry the swing through the edge-on handoff.
+   The rear face starts exactly when the front reaches 89 degrees; each lower
+   panel follows its upper panel by 126ms. The longer rear-face phase
+   preserves the handoff speed and leaves more time to settle fully open. */
+@keyframes rf-front-open {
+  0% { transform: rotateY(0deg); opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: rotateY(89deg); opacity: 0; }
+}
+@keyframes rf-shade { to { opacity: 1; } }
+@keyframes rf-gone { to { visibility: hidden; } }
+
+/* Food items */
+.rf-item {
+  --emoji: clamp(26px, 5.6vh, 54px);
+  position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  width: calc(var(--emoji) * 1.45); padding: 2px 0 0; background: transparent !important; scroll-snap-align: start; z-index: 1;
+  transition: transform .18s cubic-bezier(.3, .7, .4, 1); animation: rf-pop .504s cubic-bezier(.3, 1.4, .5, 1) backwards; animation-delay: calc(1.323s + var(--i, 0) * 50.4ms);
+}
+@keyframes rf-pop { from { opacity: 0; transform: translateY(8px) scale(.85); } }
+.place-tray .rf-item, .place-drawer .rf-item { --emoji: clamp(22px, 4vh, 40px); width: calc(var(--emoji) * 1.25); }
+.rf-emoji { font-size: calc(var(--emoji) * var(--s, 1)); line-height: 1; filter: drop-shadow(0 3px 2px rgba(20, 40, 45, .28)); transition: filter .18s; }
+.rf-name { position: absolute; bottom: calc(100% - 2px); left: 50%; transform: translate(-50%, 4px); opacity: 0; pointer-events: none; white-space: nowrap; font-size: 10.5px; font-weight: 500; color: #fff; background: #23392f; padding: 3px 8px; border-radius: 6px; transition: .15s; z-index: 5; }
+.rf-dot { position: absolute; top: 0; right: 10%; width: 9px; height: 9px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 0 2px #fff; opacity: 0; transition: opacity .15s; }
+.rf-item.tone-soon .rf-dot, .rf-item.tone-urgent .rf-dot, .rf-item.tone-past .rf-dot { opacity: 1; }
+.rf-item.tone-urgent .rf-dot, .rf-item.tone-past .rf-dot { animation: rf-pulse 2.2s ease-in-out infinite; }
+@keyframes rf-pulse { 50% { box-shadow: 0 0 0 2px #fff, 0 0 0 5px color-mix(in srgb, var(--tone) 35%, transparent); } }
+.rf-item:hover, .rf-item:focus-visible, .rf-item.is-selected { transform: translateY(-4px); }
+.rf-item:hover .rf-emoji, .rf-item.is-selected .rf-emoji { filter: drop-shadow(0 8px 5px rgba(20, 40, 45, .3)); }
+.rf-item:hover .rf-dot, .rf-item.is-selected .rf-dot { opacity: 1; }
+.rf-item:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+@media (hover: hover) { .rf-item:hover .rf-name { opacity: 1; transform: translate(-50%, 0); } }
+.rf-item:focus-visible .rf-name { opacity: 1; transform: translate(-50%, 0); }
+
+.rf-scroll { position: absolute; top: 55%; transform: translateY(-50%); z-index: 4; width: 24px; height: 24px; border-radius: 50% !important; background: #fff; color: #36524a; font-size: 16px; line-height: 1; box-shadow: 0 2px 6px rgba(20, 40, 45, .3); opacity: 0; transition: opacity .15s; }
+.rf-scroll.left { left: 4px; } .rf-scroll.right { right: 4px; }
+.rf-zone:hover .rf-scroll, .rf-scroll:focus-visible { opacity: 1; }
+@media (hover: none) { .rf-scroll { opacity: .9; } }
+
+.rf-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; font-size: 10px; color: #7a8780; flex-shrink: 0; }
+.rf-foot button { background: transparent; color: #2f5a46; font-size: 10.5px; font-weight: 600; padding: 2px; }
+
+/* Details card */
+.rf-peek-scrim { display: none; }
+.rf-peek {
+  position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 24px);
+  background: #fff; color: #23392f; border-radius: 16px; padding: 14px; outline: none;
+  box-shadow: 0 0 0 1px rgba(30, 60, 45, .08), 0 22px 48px -16px rgba(20, 45, 35, .4);
+  animation: rf-in .16s ease-out; left: 50%; top: 50%; transform: translate(-50%, -50%);
+}
+.rf-peek[style] { transform: none; }
+.rf-peek[style]::before { content: ""; position: absolute; left: var(--arrow); bottom: -6px; width: 12px; height: 12px; margin-left: -6px; background: #fff; transform: rotate(45deg); box-shadow: 3px 3px 4px -2px rgba(20, 45, 35, .15); }
+.rf-peek.below[style]::before { bottom: auto; top: -6px; box-shadow: -2px -2px 4px -2px rgba(20, 45, 35, .12); }
+@keyframes rf-in { from { opacity: 0; translate: 0 6px; } }
+.rf-peek-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.rf-peek-emoji { width: 44px; height: 44px; display: grid; place-items: center; font-size: 26px; border-radius: 12px; background: #f1f5ee; }
+.rf-peek-head h3 { margin: 0; font-size: 15px; line-height: 1.25; letter-spacing: -.2px; overflow-wrap: anywhere; }
+.rf-peek-head p { margin: 2px 0 0; font-size: 11px; color: #7a8780; }
+.rf-peek-close { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50% !important; background: #f2f4f0; color: #4c5f56; align-self: start; }
+.rf-peek-close:hover { background: #e5eae2; }
+.rf-peek-label { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .9px; text-transform: uppercase; color: #8a978f; margin-bottom: 3px; }
+.rf-peek-expiry { margin-top: 12px; padding: 10px 11px; border-radius: 11px; background: color-mix(in srgb, var(--tone) 10%, #fff); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; }
+.rf-peek-expiry strong { font-size: 14px; }
+.rf-chip { font-size: 10.5px; font-weight: 600; color: color-mix(in srgb, var(--tone) 75%, #1d2f27); background: color-mix(in srgb, var(--tone) 18%, #fff); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.rf-meter { grid-column: 1 / -1; display: block; height: 5px; border-radius: 4px; background: color-mix(in srgb, var(--tone, #9ab49a) 16%, #eef1ec); overflow: hidden; }
+.rf-meter i { display: block; height: 100%; border-radius: inherit; background: var(--tone); }
+.rf-meter.green { --tone: #5c9a6b; margin: 6px 0; }
+.rf-peek-nutrient { margin-top: 12px; }
+.rf-peek-main { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rf-peek-main strong { font-size: 17px; letter-spacing: -.3px; }
+.rf-peek-main span { font-size: 15px; font-weight: 700; color: #3d7a50; white-space: nowrap; }
+.rf-peek-main small { font-size: 10px; font-weight: 500; color: #7a8780; }
+.rf-peek-nutrient p { margin: 0; font-size: 11px; color: #66756d; line-height: 1.45; }
+.rf-peek-also { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; font-size: 10.5px; color: #7a8780; }
+.rf-peek-also > span:first-child { margin-right: 2px; }
+.rf-tag { background: #eef4ea; color: #3a5b46; padding: 3px 8px; border-radius: 10px; font-weight: 500; cursor: help; }
+.rf-peek-macros { display: grid; grid-template-columns: repeat(4, 1fr); margin: 12px 0 0; border-top: 1px solid #edf0ea; padding-top: 10px; }
+.rf-peek-macros div { text-align: center; }
+.rf-peek-macros dt { font-size: 9.5px; color: #8a978f; }
+.rf-peek-macros dd { margin: 2px 0 0; font-size: 13px; font-weight: 650; }
+.rf-peek-warn { margin: 10px 0 0; font-size: 11px; color: #9b4a2a; background: #fbede4; padding: 7px 9px; border-radius: 8px; }
+.rf-peek-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.rf-peek-actions .btn { justify-content: center; padding: 9px 10px; font-size: 12px; }
+.rf-peek-note { margin: 9px 0 0; font-size: 9.5px; line-height: 1.45; color: #96a29b; }
+
+@media (max-width: 1000px) { .rf-legend { display: none; } }
+@media (max-width: 640px) {
+  .rf-unit { grid-template-columns: minmax(0, 1fr) 33%; }
+  .rf-cabinet { border-radius: 9px 3px 3px 9px; }
+  .rf-row { padding: 20px 4px 0; }
+  .rf-zone-tag { font-size: 8px; padding: 1px 5px; top: 4px; left: 4px; }
+  .rf-zone-tag > span, .rf-zone-tag i { display: none; }
+  .place-drawer .rf-row { padding-right: 60px; padding-left: 8px; }
+  .rf-item { --emoji: clamp(20px, 3.6vh, 32px); }
+  .place-tray .rf-item, .place-drawer .rf-item { --emoji: clamp(18px, 3.1vh, 28px); }
+  .rf-door-leaf.upper { padding-right: 10px; }
+  .place-tray .rf-row { padding: 12px 2px 7px 8px; }
+  .place-tray .rf-zone-tag { font-size: 7.5px; }
+  .rf-tray-side { width: 10px; right: -10px; }
+  .rf-leaf i { width: 5px; }
+  .rf-foot { font-size: 9px; }
+  .rf-peek-scrim { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(20, 35, 28, .28); animation: rf-fade .16s; }
+  .rf-peek, .rf-peek[style] { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100%; max-width: none; transform: none; max-height: 85dvh; overflow: auto; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); animation: rf-up .2s ease-out; }
+  .rf-peek[style]::before { display: none; }
+}
+@keyframes rf-up { from { translate: 0 40px; opacity: .4; } }
+@keyframes rf-fade { from { opacity: 0; } }
+@media (max-height: 680px) { .rf-zone-tag { font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) {
+  .rf-front { display: none; }
+  .rf-door-leaf, .rf-item, .rf-compartment::after, .rf-peek, .rf-peek-scrim { animation: none; }
+  .rf-item { transition: none; }
+}
+
+/* Center empty drawer labels independently of the food row’s label clearance. */
+.place-drawer .rf-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; text-align: center; }

@@ -1,151 +1,37 @@
-import React, { useState } from "react";
-import { Panel, Metric } from "../components/FeatureUI.jsx";
-import {
-  nutrientTotals,
-  nutrientDefinitions,
-  nutrientInfo,
-  microTargets,
-} from "../../../../packages/shared/nutrition.mjs";
-export default function WrappedPage({ state }) {
-  const [month, setMonth] = useState(
-    new Date().toLocaleDateString("en-CA").slice(0, 7),
-  );
-  const logs = state.logs.filter(
-    (l) => (l.userId || "me") === "me" && l.date.startsWith(month),
-  );
-  const sum = (k) =>
-    Math.round(logs.reduce((a, l) => a + (l.nutrients?.[k] || 0), 0));
-  const countBy = (key) =>
-    Object.entries(
-      logs.reduce((s, l) => {
-        if (l[key]) s[l[key]] = (s[l[key]] || 0) + 1;
-        return s;
-      }, {}),
-    ).sort((a, b) => b[1] - a[1]);
-  const byDay = [...new Set(logs.map((l) => l.date))].sort();
-  const target = microTargets(state.profile);
-  return (
-    <div className="feature-page">
-      <Panel
-        title="Your food, remembered"
-        subtitle="Your monthly diary: food, nutrition, and cuisine patterns."
-        action={
-          <input
-            aria-label="Wrapped month"
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          />
-        }
-      >
-        <div className="feature-metrics">
-          <Metric
-            label="Calories logged"
-            value={sum("kcal").toLocaleString() + " kcal"}
-          />
-          <Metric
-            label="Protein logged"
-            value={sum("protein").toLocaleString() + " g"}
-          />
-          <Metric
-            label="Carbohydrates logged"
-            value={sum("carbs").toLocaleString() + " g"}
-          />
-        </div>
-      </Panel>
-      <div className="feature-columns">
-        <Panel
-          title="On repeat"
-          subtitle="Your favourites, based on logged meals."
-        >
-          <h3>
-            {countBy("name")[0]?.[0] || "Your first favourite is still ahead."}
-          </h3>
-          <p className="body-copy">
-            Favourite cuisine:{" "}
-            {countBy("cuisine")[0]?.[0] || "Not enough cuisine data yet"}
-          </p>
-          <p className="body-copy">
-            {logs.length} food/meal entries across {byDay.length} days.
-          </p>
-        </Panel>
-        <Panel
-          title="The nutrients in your month"
-          subtitle="Totals include known Canadian nutrient values only."
-        >
-          <div className="nutrient-summary-list">
-            {Object.entries(nutrientTotals(logs).values)
-              .filter(([id]) =>
-                [
-                  "301",
-                  "303",
-                  "304",
-                  "401",
-                  "339",
-                  "418",
-                  "815",
-                  "306",
-                ].includes(id),
-              )
-              .map(([id, value]) => {
-                const def = nutrientDefinitions.find((n) => n.id === id);
-                return (
-                  <div key={id}>
-                    <span>{nutrientInfo(def).name}</span>
-                    <strong>
-                      {Math.round(value * 10) / 10} {def.unit}
-                    </strong>
-                  </div>
-                );
-              })}
-          </div>
-        </Panel>
-      </div>
-      <Panel
-        title="Day by day"
-        subtitle="Above/below applies to the recorded intake, not your actual nutrient status. Missing meals and unknown data matter."
-      >
-        {byDay.map((date) => {
-          const day = logs.filter((l) => l.date === date),
-            totals = nutrientTotals(day);
-          const differences = Object.entries(target)
-            .filter(
-              ([id, t]) =>
-                totals.coverage[id] === day.length &&
-                totals.values[id] !== undefined,
-            )
-            .map(([id, t]) => ({ id, ratio: totals.values[id] / t }))
-            .sort((a, b) => Math.abs(b.ratio - 1) - Math.abs(a.ratio - 1))
-            .slice(0, 3);
-          return (
-            <article className="wrapped-day" key={date}>
-              <strong>{date}</strong>
-              <span>
-                {Math.round(
-                  day.reduce((a, l) => a + (l.nutrients?.kcal || 0), 0),
-                )}{" "}
-                kcal logged
-              </span>
-              <div>
-                {differences.map((d) => (
-                  <span className="pill" key={d.id}>
-                    {
-                      nutrientInfo(
-                        nutrientDefinitions.find((n) => n.id === d.id),
-                      ).name
-                    }
-                    : {Math.round(d.ratio * 100)}% of reference (
-                    {d.ratio > 1 ? "above" : "below"})
-                  </span>
-                ))}
-              </div>
-            </article>
-          );
-        })}
-        {!logs.length && (
-          <div className="empty">Log a meal to begin this month’s summary.</div>
-        )}
-      </Panel>
-    </div>
-  );
+import React, { useState } from 'react';
+import { today } from '../data/food.mjs';
+import { wrappedInsights } from '../lib/insights.mjs';
+import WeightCheckIn from '../components/WeightCheckIn.jsx';
+function Chart({ series, metric, label, unit, color = '#2e7051' }) {
+  const values = series.filter((r) => Number.isFinite(r[metric]));
+  if (!values.length) return <p className="wrapped-chart-empty">No {label.toLowerCase()} recorded in this period.</p>;
+  const min = metric === 'weight' ? Math.floor(Math.min(...values.map((r) => r[metric])) - .5) : 0;
+  const max = Math.max(min + 1, ...values.map((r) => r[metric])) * (metric === 'weight' ? 1 : 1.05);
+  const x = (date) => 48 + series.findIndex((r) => r.date === date) / Math.max(1, series.length - 1) * 580;
+  const y = (v) => 180 - (v - min) / (max - min) * 150;
+  return <figure className="wrapped-chart"><figcaption>{label} <small>· {unit} · {values.length} recorded days</small></figcaption><svg viewBox="0 0 660 220" role="img" aria-label={`${label}: ${values.length} recorded days. First ${values[0][metric].toFixed(1)}, latest ${values.at(-1)[metric].toFixed(1)} ${unit}.`}>
+    {[min, (min + max) / 2, max].map((v) => <g key={v}><line x1="48" x2="628" y1={y(v)} y2={y(v)} stroke="#dce3da" /><text x="40" y={y(v) + 4} textAnchor="end">{Math.round(v * 10) / 10}</text></g>)}
+    {series.map((r, i) => i > 0 && Number.isFinite(r[metric]) && Number.isFinite(series[i - 1][metric]) && <line key={`line-${r.date}`} x1={x(series[i-1].date)} y1={y(series[i-1][metric])} x2={x(r.date)} y2={y(r[metric])} stroke={color} strokeWidth="2" />)}
+    {values.map((r) => <circle key={r.date} cx={x(r.date)} cy={y(r[metric])} r="3.5" fill={color}><title>{r.date}: {r[metric].toFixed(1)} {unit}</title></circle>)}
+    <text x="48" y="211">{series[0].date}</text><text x="628" y="211" textAnchor="end">{series.at(-1).date}</text></svg><details><summary>View recorded values</summary><div className="wrapped-chart-data">{values.map((r) => <div key={r.date}>{r.date} · {r[metric].toFixed(1)} {unit}</div>)}</div></details></figure>;
+}
+const number = (n, digits = 0) => n === null ? '—' : n.toLocaleString(undefined, { maximumFractionDigits: digits });
+function relationship(result) { if (!result) return null; const magnitude = Math.abs(result.r); return `${magnitude < .3 ? 'Little linear association' : magnitude < .6 ? 'A moderate ' + (result.r > 0 ? 'positive' : 'negative') + ' association' : 'A strong ' + (result.r > 0 ? 'positive' : 'negative') + ' association'} in these records (r = ${result.r.toFixed(2)}, n = ${result.count}).`; }
+export default function WrappedPage({ state, setState }) {
+  const [days, setDays] = useState(30), [slide, setSlide] = useState(0);
+  const data = wrappedInsights(state, today(), days);
+  const chapters = [
+    { kicker: 'Your rhythm', title: `${data.loggedDays} days. A story taking shape.`, body: `${data.logs} food entries and ${data.checkIns} wellbeing check-ins in the last ${days} days. Every recorded day adds context.`, chart: <Chart series={data.series} metric="kcal" label="Recorded energy" unit="kcal" />, note: 'Unlogged days are gaps, not zero intake. Logged calories may represent only part of a day.' },
+    { kicker: 'On repeat', title: data.favorite ? `${data.favorite[0]} had a moment.` : 'Your next favourite is waiting.', body: data.favorite ? `${data.favorite[1]} entries made it your most frequently logged food. You recorded ${data.variety} distinct food or meal names.` : 'Log a meal to start discovering your food patterns.', chart: <div className="wrapped-big-stats"><div><strong>{data.variety}</strong><span>distinct logged names</span></div><div><strong>{number(data.averages.protein)}</strong><span>g protein / recorded day</span></div><div><strong>{number(data.averages.fiber)}</strong><span>g fibre / recorded day</span></div></div>, note: 'Distinct names describe diary variety, not necessarily ingredient diversity. Nutrient averages include known values only; incomplete meals can lower recorded totals.' },
+    { kicker: 'The little things', title: 'There’s more to your food than macros.', body: 'A closer look at the micronutrients present in your logged food.', chart: <div className="wrapped-micros">{data.micros.map((m) => <div key={m.name}><span>{m.name}</span><strong>{number(m.total, 1)} {m.unit}</strong><small>{m.knownRecords} of {m.records} entries have known values</small></div>)}{!data.micros.length && <p>Log food with measured nutrient references to see this chapter.</p>}</div>, note: 'These are period totals, not daily targets or a measure of nutrient status. Missing measurements are excluded.' },
+    { kicker: 'Your longer view', title: data.weightChange === null ? 'A starting point, then a pattern.' : `${Math.abs(data.weightChange).toFixed(1)} kg ${data.weightChange >= 0 ? 'higher' : 'lower'} between recorded weigh-ins.`, body: data.weights.length > 1 ? `${data.weights[0].date} to ${data.weights.at(-1).date}, across ${data.weights.length} weigh-ins. A change is information, not a score.` : 'Two weigh-ins will start a weight trend. Record one whenever it’s useful.', chart: <Chart series={data.series} metric="weight" label="Recorded weight" unit="kg" color="#617e96" />, note: 'Short-term weight changes can reflect hydration, timing, and other factors. Only actual weigh-ins are shown.' },
+    { kicker: 'Rest & energy', title: data.sleepEnergy ? 'How did rest and energy move together?' : 'Your wellbeing deserves a chapter.', body: relationship(data.sleepEnergy) || `You recorded ${data.checkIns} check-ins. At least 8 paired sleep-and-energy records with variation are needed for a descriptive relationship.`, chart: <div className="wrapped-chart-pair"><Chart series={data.series} metric="sleep" label="Sleep" unit="hours" color="#617e96" /><Chart series={data.series} metric="energy" label="Self-rated energy" unit="/ 5" /></div>, note: 'Same-day sleep and energy reports are compared. Association does not establish cause; routine and other factors may affect both.' },
+    { kicker: 'Connecting the dots', title: data.weightCalories ? 'Calories and weight: a pattern in your records.' : 'Some insights need a longer story.', body: relationship(data.weightCalories) || `${data.weightPairs} eligible weigh-in intervals so far. This analysis needs at least 8 intervals across 21+ days, with calorie values recorded on every day between weigh-ins and variation in both measurements. Try a longer period as your history grows.`, chart: <div className="wrapped-chart-pair"><Chart series={data.series} metric="kcal" label="Recorded energy" unit="kcal" /><Chart series={data.series} metric="weight" label="Recorded weight" unit="kg" color="#617e96" /></div>, note: 'Compares average recorded calories between weigh-ins with weight change per day over that interval. Known calories in all entries do not mean every meal was logged. This is exploratory, not a causal finding or a basis for calorie changes.' },
+  ];
+  const current = chapters[slide];
+  return <div className="feature-page wrapped-page"><div className="wrapped-controls"><span className="eyebrow">REFRIDGE WRAPPED</span><label>Look back <select value={days} onChange={(e) => { setDays(Number(e.target.value)); setSlide(0); }}><option value={30}>30 days</option><option value={90}>90 days</option><option value={365}>One year</option></select></label></div>
+    <article className="wrapped-story" key={`${days}-${slide}`} aria-live="polite"><p className="eyebrow">{current.kicker}</p><h1>{current.title}</h1><p className="wrapped-story-body">{current.body}</p>{current.chart}<p className="wrapped-story-note">{current.note}</p></article>
+    <nav className="wrapped-pagination" aria-label="Wrapped chapters"><button className="btn outline" disabled={slide === 0} onClick={() => setSlide(slide - 1)}>← Back</button><span>{slide + 1} / {chapters.length}</span><button className="btn primary" onClick={() => setSlide(slide === chapters.length - 1 ? 0 : slide + 1)}>{slide === chapters.length - 1 ? 'Replay' : 'Next'} →</button></nav>
+    <WeightCheckIn state={state} setState={setState} always />
+  </div>;
 }

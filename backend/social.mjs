@@ -13,6 +13,9 @@ export function socialView(state, s) {
         other?.social?.enabled && (other.social.friendIds || []).includes(s.id),
     );
   return {
+    messages: s.social?.enabled ? (state.socialMessages || []).filter((m) =>
+      (m.fromId === s.id && friends.some((f) => f.id === m.toId)) ||
+      (m.toId === s.id && friends.some((f) => f.id === m.fromId))) : [],
     enabled: !!s.social?.enabled,
     friends: friends.map((other) => ({
       ...publicProfile(other),
@@ -164,4 +167,31 @@ export function respondSocialTrade(state, s, id, status) {
     );
   t.status = status;
   return t;
+}
+
+const chatPrompts = {
+  meal: "Meal collab · What should we cook together?",
+  competition: "Friendly competition · Ready for a food-saving challenge?",
+};
+export function sendFriendMessage(state, s, input, now) {
+  const other = state.sessions[input.toId];
+  if (!s.social?.enabled || !other?.social?.enabled ||
+      !(s.social.friendIds || []).includes(other.id) || !(other.social.friendIds || []).includes(s.id))
+    throw Error("Messages are only available between accepted, sharing connections.");
+  const prompt = input.prompt == null ? null : input.prompt;
+  if (prompt !== null && !Object.hasOwn(chatPrompts, prompt)) throw Error("Choose a meal collab or friendly competition prompt.");
+  const text = prompt ? chatPrompts[prompt] : typeof input.text === "string" ? input.text.trim() : "";
+  if (!text || text.length > 2000) throw Error("Write a message of 1–2000 characters.");
+  const clientId = typeof input.clientId === "string" && /^[a-zA-Z0-9_-]{8,80}$/.test(input.clientId) ? input.clientId : null;
+  const messages = state.socialMessages ||= [];
+  const existing = clientId && messages.find((m) => m.fromId === s.id && m.clientId === clientId);
+  if (existing) {
+    if (existing.toId !== other.id || existing.text !== text || existing.prompt !== prompt) throw Error("Message identifier already used.");
+    return existing;
+  }
+  if (messages.filter((m) => m.fromId === s.id && Date.parse(m.createdAt) > now - 60000).length >= 30) throw Error("Please wait a moment before sending more messages.");
+  if (messages.filter((m) => (m.fromId === s.id && m.toId === other.id) || (m.toId === s.id && m.fromId === other.id)).length >= 1000) throw Error("This conversation has reached its message limit.");
+  const message = { id: randomUUID(), fromId: s.id, toId: other.id, kind: prompt ? "system" : "text", prompt, text, createdAt: new Date(now).toISOString(), clientId };
+  messages.push(message);
+  return message;
 }

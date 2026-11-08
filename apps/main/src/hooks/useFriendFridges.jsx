@@ -94,6 +94,7 @@ export function useFriendFridges(state, setState) {
                   })),
                 ),
                 remoteTrades: view.trades,
+                friendMessages: view.messages || [],
                 ownSessionId: d.sessionId || d.id,
                 activeFridgeId:
                   current.fridges.some(

@@ -485,8 +485,8 @@ function CameraApp() {
                 <div>
                   <h2>Capture when things move</h2>
                   <p>
-                    On-device movement detection. The shared server analyses
-                    food changes when enabled.
+                    Let the camera notice when food moves, then review
+                    the suggested changes in Refridge.
                   </p>
                 </div>
                 <label className="switch">
@@ -518,9 +518,8 @@ function CameraApp() {
                 </label>
               )}
               <div className="note">
-                Keep this app open and the phone unlocked. Images are uploaded
-                to your paired server only when captured. No audio is recorded.
-                Pair the second phone separately for its other angle.
+                Keep this app open and the phone unlocked so it can capture photos.
+                No audio is recorded. Connect a second phone for the other angle.
               </div>
               <button className="text-button" onClick={disconnect}>
                 Disconnect this phone
@@ -531,14 +530,13 @@ function CameraApp() {
         <section className="setup-note">
           <strong>A phone today. An integrated camera tomorrow.</strong>
           <p>
-            Uses Wi-Fi / HTTPS image uploads. No Bluetooth connection is
-            required. On iPhone, Share → Add to Home Screen installs this
-            companion separately from Refridge.
+            Keep your phone connected to the internet. On iPhone, tap
+            Share → Add to Home Screen for quicker access to Camera Companion.
           </p>
         </section>
       </main>
       <footer>
-        Two views. One event. Analysis runs on your paired server.
+        Two views help keep your fridge up to date.
       </footer>
     </div>
   );

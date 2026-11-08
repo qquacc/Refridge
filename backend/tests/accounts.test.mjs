@@ -103,3 +103,30 @@ test("case-insensitive usernames, password limits, and persistent login throttli
   for (let n = 0; n < 9; n++) assert.equal((await a.request("/api/auth/login", { body: { username: "valid", password: "wrong-password" } })).status, 401);
   assert.equal((await a.request("/api/auth/login", { body: { username: "valid", password } })).status, 429);
 });
+
+test("sample login provisions a populated demo once and preserves subsequent edits", async (t) => {
+  const x = await setup(t), user = await client(x);
+  assert.equal((await user.request('/api/auth/login', { body: { username: 'sample', password: 'wrong-password' } })).status, 401);
+  const login = await user.request('/api/auth/login', { body: { username: 'sample', password: '1234567890' } });
+  assert.equal(login.status, 200);
+  const s = login.data.appState;
+  assert.equal(s.household, "Nathaniel's Kitchen");
+  assert.equal(s.profile.name, 'Nathaniel');
+  assert(s.targetCalculation.available);
+  assert(s.items.length >= 20);
+  assert(s.logs.length >= 500);
+  assert.equal(s.wellbeing.checkIns.length, 90);
+  assert(s.fridges.some((f) => f.name === "Allen's Fridge"));
+  assert(s.fridges.some((f) => f.name === "Ava's Fridge"));
+  assert(s.friendItems.length && s.trades.length);
+  assert.equal(s.onboarding.completed, true);
+  assert(JSON.stringify(s).length < 1500000);
+  const edited = { ...s, household: 'Demo edited kitchen' };
+  assert.equal((await user.request('/api/account/state', { body: { accountId: login.data.account.id, revision: login.data.revision, appState: edited } })).status, 200);
+  await user.request('/api/auth/logout', { body: {} });
+  const again = await user.request('/api/auth/login', { body: { username: 'sample', password: '1234567890' } });
+  assert.equal(again.data.appState.household, 'Demo edited kitchen');
+  const other = await client(x);
+  const signup = await other.request('/api/auth/signup', { body: { username: 'ordinary', password } });
+  assert.equal(signup.data.appState, null);
+});
