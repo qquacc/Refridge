@@ -126,7 +126,7 @@ function CameraApp() {
     if (!video?.videoWidth || video.readyState < 2)
       throw Error("Camera is still warming up. Try again.");
     const canvas = document.createElement("canvas");
-    canvas.width = Math.min(video.videoWidth, 960);
+    canvas.width = Math.min(video.videoWidth, 720);
     canvas.height = Math.round(
       (canvas.width * video.videoHeight) / video.videoWidth,
     );

@@ -3,7 +3,7 @@ services:
     build: .
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      VISION_MODEL: ${VISION_MODEL:-gemini-2.5-flash}
+      VISION_MODEL: ${VISION_MODEL:-gemini-3.8-flash}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
       TRUST_PROXY: ${TRUST_PROXY:-false}

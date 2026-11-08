@@ -51,7 +51,7 @@
   ],
   "functions": {
     "api/index.mjs": {
-      "maxDuration": 60,
+      "maxDuration": 300,
       "includeFiles": "backend/data/**"
     }
   },

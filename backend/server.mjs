@@ -368,7 +368,7 @@ export function createApp({
         findAuth(state, req, "owner");
         return send({
           keyConfigured: automation.keyConfigured(),
-          model: process.env.VISION_MODEL || "gemini-2.5-flash",
+          model: process.env.VISION_MODEL || "gemini-3.8-flash",
           nutrientSource: "Health Canada CNF 2015",
         });
       }

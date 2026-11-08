@@ -29,7 +29,7 @@ To enable automatic image analysis, put your provider key in the root `.env`:
 
 ```dotenv
 GEMINI_API_KEY=your-server-side-key
-VISION_MODEL=gemini-2.5-flash
+VISION_MODEL=gemini-3.8-flash
 ```
 
 Restart the server after changing environment variables. Never use a `VITE_` prefix for a secret. Provider usage requires your own account, access, and billing. Without a key, inventory/planning/social tools and manual camera review work; the app does not fabricate automatic recognition.

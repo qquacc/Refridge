@@ -238,7 +238,7 @@ test("Gemini request uses inline images, JSON schema, container photos, and serv
     },
   );
   assert.equal(result.changes[0].foodId, spinach.cnfId);
-  assert.equal(request.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+  assert.equal(request.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent");
   assert.equal(request.generationConfig.responseMimeType, "application/json");
   assert.equal(request.generationConfig.responseJsonSchema.properties.changes.type, "array");
   assert.equal(
@@ -387,4 +387,33 @@ test("Gemini 404 logs diagnostic codes without leaking keys or provider bodies",
   assert.deepEqual(logs[0][1].reasons, ["MODEL_NOT_FOUND"]);
   assert(!JSON.stringify(logs).includes("private-test-key"));
   assert(!JSON.stringify(logs).includes("private image contents"));
+});
+
+test("Gemini timeout gives a retryable review message and uses the longer request budget", async (t) => {
+  t.mock.method(console, "error", () => {});
+  let timeoutMs;
+  t.mock.method(AbortSignal, "timeout", (ms) => { timeoutMs = ms; return new AbortController().signal; });
+  await assert.rejects(() => analyzeWithVision(
+    { before: rolePhotos, after: rolePhotos, context },
+    { apiKey: "key", fetchImpl: async () => { throw new DOMException("Timeout", "TimeoutError"); } },
+  ), /within 4 minutes.*inventory was not changed.*Retry/);
+  assert.equal(timeoutMs, 240000);
+});
+
+test("fast analysis uses compact food context and low thinking without dropping camera views", async () => {
+  let body;
+  await analyzeWithVision(
+    { before: rolePhotos, after: rolePhotos, context },
+    { apiKey: "key", model: "gemini-3.8-flash", fetchImpl: async (_url, args) => {
+      body = JSON.parse(args.body);
+      return { ok: true, json: async () => ({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify(analysis) }] } }] }) };
+    } },
+  );
+  assert.deepEqual(body.generationConfig.thinkingConfig, { thinkingLevel: "LOW" });
+  assert.equal(body.generationConfig.maxOutputTokens, 4096);
+  const prompt = JSON.parse(body.contents[0].parts[0].text);
+  assert.deepEqual(prompt.catalogColumns, ["foodId", "name"]);
+  assert(prompt.catalog.every((row) => row.length === 2));
+  assert(body.contents[0].parts[0].text.length < 8000);
+  assert.equal(body.contents[0].parts.filter((p) => p.inlineData).length, 4);
 });

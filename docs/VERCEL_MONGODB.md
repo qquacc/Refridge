@@ -41,7 +41,7 @@ Add these to the project before deployment:
 | `MONGODB_URI` | Your private Atlas connection string |
 | `MONGODB_DB` | `fridgeful` (or your chosen database name) |
 | `GEMINI_API_KEY` | Optional for pairing/manual review; required for automatic image analysis |
-| `VISION_MODEL` | `gemini-2.5-flash` unless you select another compatible vision model |
+| `VISION_MODEL` | `gemini-3.8-flash` unless you select another compatible vision model |
 | `VITE_CAMERA_API_URL` | Leave unset/blank for this same-origin deployment |
 
 Do **not** give database/provider secrets a `VITE_` prefix. Redeploy after editing environment variables.
@@ -79,3 +79,5 @@ Without `MONGODB_URI`, `npm start` continues using local files. With it set in r
 Run `npm ci`, `npm test`, `npm run build`. Mongo adapter tests use a transaction-capable in-memory test double; no live Atlas credentials were available. These validate adapter behavior and HTTP/lifecycle contracts, not actual Atlas networking or a completed Vercel deployment.
 
 Official references: https://www.mongodb.com/docs/drivers/node/current/crud/transactions/ ; https://vercel.com/docs/functions/runtimes/node-js ; https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package ; https://vercel.com/docs/project-configuration/vercel-json .
+
+Image analysis allows up to 240 seconds for Gemini, with a 270-second database lease and a 300-second Vercel function limit. Enable Fluid compute in Vercel to support this function duration. Failed or timed-out events remain available for manual review or explicit retry.

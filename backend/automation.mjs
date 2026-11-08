@@ -33,7 +33,8 @@ export function createAutomation({
           return false;
         s.analysisLease = {
           token: leaseToken,
-          until: Date.now() + 90000,
+          // Outlast the 240-second provider request plus image/database work.
+          until: Date.now() + 270000,
           eventId,
         };
         return true;
@@ -183,7 +184,7 @@ export function createAutomation({
           state: "applied",
           summary: analysis.summary,
           operations: plan.operations,
-          model: process.env.VISION_MODEL || "gemini-2.5-flash",
+          model: process.env.VISION_MODEL || "gemini-3.8-flash",
           source: "Health Canada CNF 2015",
         };
         e.status = plan.operations.length ? "confirmed" : "ignored";
