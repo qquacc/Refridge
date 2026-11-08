@@ -217,7 +217,7 @@ export default function App({ account, onLogout }) {
   );
   if (state.onboarding?.completed === false || (!state.onboarding && !state.profile.complete))
     return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error || toast} onLogout={signOut} signingOut={signingOut} onComplete={beginWelcome} />;
-  if (welcome) return <WelcomeSplash onDone={finishWelcome} />;
+  if (welcome) return <WelcomeSplash onDone={finishWelcome} afterOnboarding />;
   return (
     <div className={"app-shell" + (page === "home" ? " home-screen" : "")}>
       <a className="skip-link" href="#main">

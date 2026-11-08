@@ -23,7 +23,7 @@ export const defaultProfile = {
   cuisines: ["Mediterranean"],
   allergies: "",
   budgetCad: 65,
-  city: "Calgary",
+  city: "",
   complete: false,
 };
 export function upgradeState(raw) {

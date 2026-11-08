@@ -1,3 +1,4 @@
+import { searchCities } from "./locations.mjs";
 import { analyzeMealPhoto } from "./meal-vision.mjs";
 import { signedInAccount, createAccountRoutes } from "./accounts.mjs";
 import { confirmedPredictedFood, enrichFoodPredictions } from "./predictions.mjs";
@@ -351,6 +352,7 @@ export function createApp({
         res.writeHead(status, { "Content-Type": "application/json" });
         res.end(JSON.stringify(value));
       };
+      if (p === "/api/locations" && method === "GET") return send({ cities: await searchCities(url.searchParams.get("q") || "") });
       if (p === "/api/meals/recognize" && method === "POST") {
         const state = await store.read();
         const account = signedInAccount(state, req, now());

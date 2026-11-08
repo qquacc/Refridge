@@ -214,7 +214,7 @@
 
 /* Slim physical door edges follow the existing swing and fade with each leaf. */
 .rf-leaf, .rf-door-leaf { transform-style: preserve-3d; }
-.rf-leaf::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: 0; width: 5px; background: #a9c4c8; transform-origin: left center; transform: rotateY(-90deg); pointer-events: none; }
-.rf-door-leaf::before { content: ""; position: absolute; top: 2px; bottom: 2px; right: 0; width: 4px; background: #a1bdc2; transform-origin: right center; transform: rotateY(90deg); pointer-events: none; }
+.rf-leaf::before { content: ""; position: absolute; top: 2px; bottom: 2px; left: 0; width: 9px; background: #a9c4c8; transform-origin: left center; transform: rotateY(-90deg); pointer-events: none; }
+.rf-door-leaf::before { content: ""; position: absolute; top: 2px; bottom: 2px; right: 0; width: 8px; background: #a1bdc2; transform-origin: right center; transform: rotateY(90deg); pointer-events: none; }
 
 /* Perspective is local to each leaf so the upper/lower hinge centers stay level at the face handoff. */

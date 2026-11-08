@@ -1,5 +1,5 @@
 import { saveWeight } from "./insights.mjs";
-export const onboardingQuestions = ["What’s your name?", "How old are you?", "What’s your weight?", "How tall are you?", "What’s your gender?", "How do you like to eat?", "Any ingredients you need to avoid?", "How active is a typical day?", "What matters most to you?"];
+export const onboardingQuestions = ["What’s your name?", "How old are you?", "What’s your weight?", "How tall are you?", "What’s your gender?", "How do you like to eat?", "Any ingredients you need to avoid?", "How active is a typical day?", "What matters most to you?", "Which city do you live in?"];
 export function currentOnboardingStep(state) {
   const saved = state.onboarding?.step || 0;
   // Resuming the old flow should ask the newly added body questions first.
@@ -44,6 +44,7 @@ export function finishOnboardingStep(state, draft, step, today, skip = false) {
     if (step === 6) { profile.allergenAvoid = draft.allergenAvoid || []; profile.allergies = String(draft.allergies || "").slice(0, 400); }
     if (step === 7) profile.activity = draft.activity;
     if (step === 8) profile.goal = draft.goal;
+    if (step === 9) { profile.city = String(draft.city || "").trim().slice(0, 80); profile.cityLocation = draft.cityLocation || null; }
   }
   const completed = step === onboardingQuestions.length - 1;
   if (completed) profile.complete = true;

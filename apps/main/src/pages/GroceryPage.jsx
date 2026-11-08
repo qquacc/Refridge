@@ -101,7 +101,7 @@ export default function GroceryPage({ state, setState, notify }) {
                 {g.auto && (
                   <small className="row-note">Auto · {g.reason}</small>
                 )}
-                {tab === "pending" && <small className="row-note">{(() => { const line = costs.lines.find((l) => l.id === g.id); return line?.known ? `${cad(line.cad)} estimated` : "Price not added"; })()}</small>}
+                {tab === "pending" && <small className="row-note">{(() => { const line = costs.lines.find((l) => l.id === g.id); return line?.known ? `${cad(line.cad)} ${line.estimated ? "regional estimate" : "estimated"}` : "Price not added"; })()}</small>}
                 {g.completedAt && (
                   <small className="row-note">
                     Completed {new Date(g.completedAt).toLocaleString()}

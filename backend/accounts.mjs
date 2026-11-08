@@ -1,4 +1,4 @@
-import { sampleState } from "./demo-state.mjs";
+import { sampleState, enrichSampleState } from "./demo-state.mjs";
 import { randomBytes, randomUUID, createHash, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 const derive = promisify(scrypt);
@@ -55,10 +55,10 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
       if (username === "sample") {
         const snapshot = await store.read();
         const demo = Object.values(snapshot.accounts || {}).find((a) => a.username === "sample");
-        if (demo?.appState?.sampleAccount && !demo.appState.weightTracking) {
+        if (demo?.appState?.sampleAccount && (demo.appState.sampleDataVersion || 0) < 2) {
           await store.mutate((state) => {
             const current = state.accounts[demo.id];
-            if (!current.appState.weightTracking) { current.appState.weightTracking = sampleState(now()).weightTracking; current.revision = (current.revision || 0) + 1; }
+            if ((current.appState.sampleDataVersion || 0) < 2) { current.appState = enrichSampleState(current.appState, now()); current.revision = (current.revision || 0) + 1; }
           });
         }
         if (!Object.values(snapshot.accounts || {}).some((a) => a.username === "sample")) {
@@ -107,6 +107,10 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
     const state = await store.read(), account = signedInAccount(state, req, now());
     if (!account) fail(401, "Log in to your Refridge account.");
     if (path === "/api/auth/me" && req.method === "GET") {
+      if (account.appState?.sampleAccount && (account.appState.sampleDataVersion || 0) < 2) {
+        const result = await store.mutate((current) => { const saved = current.accounts[account.id]; if ((saved.appState.sampleDataVersion || 0) < 2) { saved.appState = enrichSampleState(saved.appState, now()); saved.revision = (saved.revision || 0) + 1; } if (!hasCreatedAt(saved)) saved.createdAt = now(); return view(current, saved); });
+        send(result); return true;
+      }
       if (!hasCreatedAt(account)) {
         const result = await store.mutate((current) => {
           const saved = current.accounts[account.id];

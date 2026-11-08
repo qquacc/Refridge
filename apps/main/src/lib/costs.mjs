@@ -1,13 +1,14 @@
+import { regionalFoodPrice } from "./regional-costs.mjs";
 export const foodPriceKey = (name) => String(name || '').trim().toLowerCase();
 export function foodPrice(state, name) {
   const p = state.foodPrices?.[foodPriceKey(name)];
-  return p && Number.isFinite(p.cad) && p.cad >= 0 && Number.isFinite(p.grams) && p.grams > 0 ? p : null;
+  return p && Number.isFinite(p.cad) && p.cad >= 0 && Number.isFinite(p.grams) && p.grams > 0 ? { ...p, estimated: false } : regionalFoodPrice(state, name);
 }
 export function groceryCosts(state, rows = state.groceries) {
   const lines = rows.map((g) => {
     const p = foodPrice(state,g.name), quantityKnown = Number.isFinite(g.grams) && g.grams > 0;
     const packages = p ? quantityKnown ? Math.ceil(g.grams / p.grams) : 1 : null;
-    return { id:g.id, name:g.name, known:!!p, packages, assumedPackage:!quantityKnown, cad:p ? packages*p.cad : null };
+    return { id:g.id, name:g.name, known:!!p, packages, assumedPackage:!quantityKnown, estimated:!!p?.estimated, source:p?.source, region:p?.region, period:p?.period, cad:p ? packages*p.cad : null };
   });
   return { lines, total:lines.reduce((sum,l)=>sum+(l.cad??0),0), unknown:lines.filter((l)=>!l.known).length, complete:lines.every((l)=>l.known) };
 }

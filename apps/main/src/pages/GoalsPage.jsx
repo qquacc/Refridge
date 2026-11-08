@@ -18,7 +18,7 @@ export default function GoalsPage({ state, setState, notify, navigate, setModal 
     if (!Number.isInteger(Number(draft.mealsPerDay)) || Number(draft.mealsPerDay) < 1 || Number(draft.mealsPerDay) > 6) { setError("Choose 1–6 meals per day."); return; }
     if (manual && fields.some(([k]) => !Number.isFinite(Number(custom[k])) || Number(custom[k]) <= 0)) { setError("Enter positive custom targets."); return; }
     if (draft.goal === "Affordability" && !plan.budget) { setError("Enter a positive weekly budget."); return; }
-    setState((s) => ({ ...s, profile: { ...s.profile, ...draft, mealsPerDay: Number(draft.mealsPerDay), budgetCad: Number(draft.budgetCad), bulkingSurplusPercent: Number(draft.bulkingSurplusPercent), bulkingProteinPerKg: Number(draft.bulkingProteinPerKg), varietyWeeklyTarget: Number(draft.varietyWeeklyTarget) }, goals: manual ? Object.fromEntries(fields.map(([k]) => [k, Number(custom[k])])) : s.goals }));
+    setState((s) => ({ ...s, profile: { ...s.profile, ...draft, city: s.profile.city, cityLocation: s.profile.cityLocation, mealsPerDay: Number(draft.mealsPerDay), budgetCad: Number(draft.budgetCad), bulkingSurplusPercent: Number(draft.bulkingSurplusPercent), bulkingProteinPerKg: Number(draft.bulkingProteinPerKg), varietyWeeklyTarget: Number(draft.varietyWeeklyTarget) }, goals: manual ? Object.fromEntries(fields.map(([k]) => [k, Number(custom[k])])) : s.goals }));
     setError(""); notify("Priority and calculated food goals saved");
   }
   return <div className="feature-page">

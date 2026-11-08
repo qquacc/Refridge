@@ -1,3 +1,4 @@
+import CityField from "../components/CityField.jsx";
 import Icon from "../components/Icon.jsx";
 import { saveWeight } from "../lib/insights.mjs";
 import { today } from "../data/food.mjs";
@@ -55,8 +56,9 @@ export default function ProfilePage({ state, setState, notify }) {
         title="Your profile"
         subtitle="Your profile is saved privately to your account. Update these details whenever you like."
       >
-        <button type="button" className="text-btn" onClick={() => setState((s) => ({ ...s, onboarding: { completed: false, step: 0 } }))}>Open guided setup →</button>
+        <button type="button" className="btn outline repeat-onboarding" onClick={() => setState((s) => ({ ...s, onboarding: { completed: false, step: 0 } }))}><Icon name="profile" size={18} /> Repeat guided setup →</button>
         <ErrorMessage error={error} />
+        <CityField value={state.profile.city} location={state.profile.cityLocation} onChange={(city, cityLocation) => setState((s) => ({ ...s, profile: { ...s.profile, city, cityLocation } }))} />
         <form className="feature-form" onSubmit={save}>
           <div className="profile-photo-row">
             {photo ? (
