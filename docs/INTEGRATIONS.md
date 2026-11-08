@@ -10,7 +10,8 @@
 | In-person trades | Real server delivery and recipient-only accept/decline | Accepted friendship; no quantities or automatic stock movement |
 | Leaderboards | Dated recorded-action awards; daily/Monday-week/month views | Connect friends to share awards |
 | Local store sales | No live feed | Affordability uses existing stock; no fabricated sale prices |
-| Email accounts/recovery | Not included | Device-token identity; keep browser credentials/data |
+| Username/password accounts | Salted scrypt passwords, seven-day cookie sessions, separate account state and camera ownership | Uses the existing backend/MongoDB; optional explicit legacy browser import |
+| Email verification/password recovery | Not included | No email service configured |
 | Medical diagnosis | Not provided | Intake references are educational estimates |
 | Background native camera | Not included | Web apps can be suspended when hidden/locked |
 

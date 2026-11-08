@@ -1,3 +1,4 @@
+import { useAccountSync, loadAccountSnapshot } from "./hooks/useAccountSync.jsx";
 import React, { useCallback, useEffect, useState } from "react";
 import { initialState, today, daysLeft, uid, totals } from "./data/food.mjs";
 import { upgradeState, getFridgeItems } from "./lib/domain.mjs";
@@ -77,32 +78,24 @@ const meta = {
   ],
   more: ["Your kitchen tools", "Everything else, one tap away."],
 };
-const KEY = "fridgeful:v1";
-function read() {
+function read(account) {
+  const empty = () => {
+    const seed = refreshDerived(upgradeState({ ...initialState(), items: [], groceries: [], logs: [] }));
+    return { ...seed, profile: { ...seed.profile, name: account.username } };
+  };
   try {
-    const s = JSON.parse(localStorage.getItem(KEY));
-    return refreshDerived(
-      upgradeState(
-        s &&
-          Array.isArray(s.items) &&
-          Array.isArray(s.logs) &&
-          Array.isArray(s.groceries) &&
-          s.goals
-          ? s
-          : initialState(),
-      ),
-    );
-  } catch {
-    return refreshDerived(upgradeState(initialState()));
-  }
+    const snapshot = loadAccountSnapshot(account);
+    return snapshot && Array.isArray(snapshot.items) && Array.isArray(snapshot.logs) && Array.isArray(snapshot.groceries) && snapshot.goals
+      ? refreshDerived(upgradeState(snapshot)) : empty();
+  } catch { return empty(); }
 }
-export default function App() {
-  const [state, rawSet] = useState(read),
+export default function App({ account, onLogout }) {
+  const [state, rawSet] = useState(() => read(account)),
     [page, setPage] = useState("home"),
     [modal, setModal] = useState(null),
     [toast, setToast] = useState(""),
     [offline, setOffline] = useState(!navigator.onLine),
-    [storageError, setStorageError] = useState(false);
+    [signingOut, setSigningOut] = useState(false);
   const setState = useCallback(
     (change) =>
       rawSet((previous) =>
@@ -114,14 +107,13 @@ export default function App() {
   );
   const syncError = useAutomaticInventory(state, setState);
   const socialError = useFriendFridges(state, setState);
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-      setStorageError(false);
-    } catch {
-      setStorageError(true);
-    }
-  }, [state]);
+  const cloud = useAccountSync(account, state);
+  async function signOut() {
+    setSigningOut(true);
+    try { await cloud.flush(); await onLogout(); }
+    catch (error) { setToast(error.message); }
+    finally { setSigningOut(false); }
+  }
   useEffect(() => {
     const on = () => setOffline(!navigator.onLine);
     window.addEventListener("online", on);
@@ -257,9 +249,10 @@ export default function App() {
             <Icon name="settings" />
             <span>Export & settings</span>
           </button>
-          <small className="prototype-label">
-            Local profile · sample friend fridges
-          </small>
+          <button className="nav-item" disabled={signingOut} onClick={signOut}>
+            <Icon name="profile" /><span>{signingOut ? "Saving & logging out…" : "Log out"}</span>
+          </button>
+          <small className="account-save-status" role="status">@{account.username} · {cloud.status}</small>
         </div>
       </aside>
       <div className="main-wrap">
@@ -270,7 +263,7 @@ export default function App() {
           </div>
           <div className="topbar-right">
             <span className="local-pill">
-              {offline ? "Offline" : "Saved on this device"}
+              {offline ? "Offline" : cloud.status}
             </span>
             <button
               className="profile"
@@ -282,12 +275,7 @@ export default function App() {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
-          {storageError && (
-            <div className="notice" role="alert">
-              Changes could not be saved. Export your records in settings before
-              closing.
-            </div>
-          )}
+          {cloud.error && <div className="error" role="alert">Account sync: {cloud.error} <button type="button" className="text-btn" onClick={() => cloud.flush().catch(() => {})}>Retry save</button></div>}
           {offline && (
             <div className="notice">
               Offline. Saved food and planning tools remain available; camera

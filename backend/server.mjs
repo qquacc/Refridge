@@ -1,3 +1,4 @@
+import { signedInAccount, createAccountRoutes } from "./accounts.mjs";
 import { confirmedPredictedFood, enrichFoodPredictions } from "./predictions.mjs";
 import { FileImages } from "./images.mjs";
 import {
@@ -101,12 +102,15 @@ function safeSession(s, now) {
     context: s.context || null,
   };
 }
-function findAuth(state, req, role) {
+function findDeviceAuth(state, req, role, currentTime = Date.now()) {
   const raw = (req.headers.authorization || "").replace(/^Bearer /, "");
   demand(raw.length >= 32, 401, "Pair or create a camera session first.");
   const digest = hash(raw);
+  const account = signedInAccount(state, req, currentTime);
   for (const s of Object.values(state.sessions)) {
-    if (role !== "camera" && s.ownerHash === digest)
+    if (role !== "camera" && s.accountId && account?.id === s.accountId && raw === "account:" + s.id)
+      return { session: s, role: "owner" };
+    if (role !== "camera" && (!s.accountId || account?.id === s.accountId) && s.ownerHash === digest)
       return { session: s, role: "owner" };
     if (role !== "owner") {
       const camera = s.cameras.find(
@@ -288,6 +292,8 @@ export function createApp({
       );
     if (event) launch(automation.processEvent(session.id, event.id));
   }
+  const accountRoute = createAccountRoutes({ store, now, jsonBody });
+  const findAuth = (state, req, role) => findDeviceAuth(state, req, role, now());
   function rate(req, scope, limit) {
     const key = (req.socket.remoteAddress || "unknown") + ":" + scope;
     const t = now();
@@ -320,6 +326,7 @@ export function createApp({
       if (origin && acceptedOrigins.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin);
         res.setHeader("Vary", "Origin");
+        res.setHeader("Access-Control-Allow-Credentials", "true");
         res.setHeader(
           "Access-Control-Allow-Headers",
           "Authorization, Content-Type",
@@ -339,6 +346,7 @@ export function createApp({
         res.writeHead(status, { "Content-Type": "application/json" });
         res.end(JSON.stringify(value));
       };
+      if (await accountRoute(req, res, p, send)) return;
       if (p.startsWith("/api/social")) {
         if (p === "/api/social" && method === "GET") {
           const state = await store.read();
@@ -482,6 +490,11 @@ export function createApp({
         const input = await jsonBody(req);
         const token = secret();
         const result = await store.mutate((state) => {
+          const account = signedInAccount(state, req, now());
+          if (account) {
+            const existing = Object.values(state.sessions).find((s) => s.accountId === account.id);
+            if (existing) return { sessionId: existing.id, ownerToken: "account:" + existing.id };
+          }
           demand(
             Object.keys(state.sessions).length < 100,
             409,
@@ -490,6 +503,7 @@ export function createApp({
           const s = {
             id: randomUUID(),
             ownerHash: hash(token),
+            ...(account ? { accountId: account.id } : {}),
             fridgeId: String(input.fridgeId || "my-fridge").slice(0, 80),
             fridgeName: String(input.fridgeName || "My fridge").slice(0, 80),
             createdAt: now(),
@@ -497,7 +511,7 @@ export function createApp({
             events: [],
           };
           state.sessions[s.id] = s;
-          return { sessionId: s.id, ownerToken: token };
+          return { sessionId: s.id, ownerToken: account ? "account:" + s.id : token };
         });
         return send(result, 201);
       }
@@ -561,13 +575,17 @@ export function createApp({
       if (p === "/api/session" && method === "GET") {
         let state = await store.read();
         const { session: existing } = findAuth(state, req, "owner");
-        if (existing.events.some((e) => e.analysis?.raw?.changes?.some((c) => c.foodName && !c.draftFood))) {
+        if (existing.events.some((e) => e.analysis?.raw?.changes?.some((c) => c.foodName && (c.direction === "out" ? c.ingredients?.length || c.draftFood : !c.draftFood)))) {
           // Upgrade saved predictions locally; no second Gemini request is needed.
           await store.mutate(async (state) => {
             const { session } = findAuth(state, req, "owner");
             for (const event of session.events)
-              if (event.analysis?.raw?.changes?.some((c) => c.foodName && !c.draftFood))
-                await enrichFoodPredictions(event.analysis.raw);
+              if (event.analysis?.raw?.changes?.some((c) => c.foodName && (c.direction === "out" ? c.ingredients?.length || c.draftFood : !c.draftFood)))
+                {
+                  await enrichFoodPredictions(event.analysis.raw, session.context?.inventory || []);
+                  if (event.analysis.raw.changes.every((c) => c.direction === "out"))
+                    event.analysis.summary = "Food came out. Review the tracked item and quantity removed.";
+                }
           });
           state = await store.read();
         }

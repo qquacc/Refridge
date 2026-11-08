@@ -55,3 +55,25 @@ test("saved dish prediction is hydrated, confirmed, added to the fridge once, an
   const conflict = await x.request(`/api/events/${id}/confirm`, { token: o.ownerToken, method: "POST", body: { ...body, grams: 200 } });
   assert.equal(conflict.status, 409);
 });
+
+test("outgoing dishes reuse saved food and skip prediction ingredients and nutrition searches", async () => {
+  const { enrichFoodPredictions } = await import("../predictions.mjs");
+  const { buildAutomaticPlan } = await import("../../packages/shared/auto-inventory.mjs");
+  const known = { id: "dish", name: "Pizza slice", cnfId: null, grams: 135, nutrientsPer100g: { "208": 250 } };
+  const analysis = { occluded: false, uncertain: false, changes: [{ foodName: "pizza-ish", direction: "out", inventoryItemId: "dish", foodId: null, grams: 120, wholeItem: true, confidence: 0.99, directionConfidence: 0.99, ingredients: [{ name: "cheese", estimatedPercent: 100 }], draftFood: {}, nutritionReferences: [{}] }] };
+  await enrichFoodPredictions(analysis, [known]);
+  const change = analysis.changes[0];
+  assert.equal(change.foodName, "Pizza slice");
+  assert.equal(change.grams, 135);
+  assert.deepEqual(change.ingredients, []);
+  assert.equal(change.draftFood, undefined);
+  assert.equal(change.nutritionReferences, undefined);
+  const plan = buildAutomaticPlan({ inventory: [known], containers: [] }, analysis, "event", () => null);
+  assert.deepEqual(plan.review, []);
+  assert.equal(plan.operations[0].newGrams, 0);
+  assert.equal(plan.operations[0].food.nutrientsPer100g["208"], 250);
+  change.inventoryItemId = null;
+  const unmatched = buildAutomaticPlan({ inventory: [known], containers: [] }, analysis, "event", () => null);
+  assert.match(unmatched.review[0], /Food came out/);
+  assert(!unmatched.review.join().includes("Prediction:"));
+});

@@ -67,7 +67,12 @@ function CaptureEvent({
   const [nutritionMethod, setNutritionMethod] = useState("reference");
   const prediction = predictionIndex >= 0 ? changes[predictionIndex] : null;
   useEffect(() => {
-    setPredictionIndex(changes.findIndex((c) => c.foodName));
+    setPredictionIndex(changes.findIndex((c) => c.foodName && c.direction !== "out"));
+    const outgoing = changes.find((c) => c.direction === "out");
+    if (outgoing) {
+      setDirection("out");
+      setDraftGrams(String(outgoing.grams > 0 ? outgoing.grams : 100));
+    }
   }, [predictionSignature]);
   useEffect(() => {
     if (!prediction) return;
@@ -195,9 +200,9 @@ function CaptureEvent({
       )}
       {event.analysis && (
         <div className="camera-analysis" role="status">
-          <strong>{event.analysis.state === "needs-review" && changes.some((c) => c.foodName) ? "Ready to review and add" : event.analysis.state}</strong>
+          <strong>{event.analysis.state === "needs-review" && changes.some((c) => c.foodName && c.direction !== "out") ? "Ready to review and add" : event.analysis.state}</strong>
           <p>{event.analysis.summary}</p>
-          {event.analysis.raw?.changes?.filter((c) => c.foodName).map((c, i) => (
+          {event.analysis.raw?.changes?.filter((c) => c.foodName && c.direction !== "out").map((c, i) => (
             <div key={i} className="notice">
               <strong>Food prediction: {c.foodName}</strong>
               {Number.isFinite(c.grams) && c.grams > 0 && <p>Estimated amount: {Math.round(c.grams)} g · verify before saving</p>}
@@ -209,6 +214,13 @@ function CaptureEvent({
                 <p>Photo estimates may miss hidden ingredients. Do not use this list to check allergens.</p>
               </>}
               {c.nutritionSuggestions?.length > 0 && <p>Possible Canadian nutrition references: {c.nutritionSuggestions.map((f) => f.name).join("; ")}. Suggested matches only.</p>}
+            </div>
+          ))}
+          {changes.filter((c) => c.direction === "out").map((c, i) => (
+            <div key={`out-${i}`} className="notice">
+              <strong>Food came out: {ownFood.find((item) => item.id === c.inventoryItemId)?.name || c.foodName || "Select the tracked food below"}</strong>
+              {Number.isFinite(c.grams) && c.grams > 0 && <p>Amount removed: {Math.round(c.grams)} g · verify before confirming</p>}
+              <p>Uses the tracked food’s saved nutrition. No new dish or ingredients are predicted.</p>
             </div>
           ))}
           {event.analysis.operations?.map((o, i) => (
@@ -246,7 +258,7 @@ function CaptureEvent({
       ) : !done ? (
         <form className="feature-form" onSubmit={confirm}>
           <p className="form-hint">
-            Review the prefilled details below, then confirm to update your fridge. Estimated expiry dates and nutrition can be adjusted.
+            {direction === "out" ? "Confirm the tracked food, amount removed, and reason below." : "Review the prefilled details below, then confirm to update your fridge. Estimated expiry dates and nutrition can be adjusted."}
           </p>
           <Field label="What happened?">
             <select
@@ -264,7 +276,7 @@ function CaptureEvent({
                 <Field label="Food to add">
                   <select value={predictionIndex} onChange={(e) => setPredictionIndex(Number(e.target.value))}>
                     <option value={-1}>Choose from the food catalog</option>
-                    {changes.map((c, i) => c.foodName ? <option key={i} value={i}>{c.foodName} · camera prediction</option> : null)}
+                    {changes.map((c, i) => c.foodName && c.direction !== "out" ? <option key={i} value={i}>{c.foodName} · camera prediction</option> : null)}
                   </select>
                 </Field>
                 <Field label="Confirm food name">
@@ -358,7 +370,7 @@ function CaptureEvent({
           {direction === "out" && (
             <>
               <Field label="Food leaving">
-                <select name="itemId" required>
+                <select name="itemId" key={predictionSignature} defaultValue={changes.find((c) => c.direction === "out")?.inventoryItemId || ""} required>
                   <option value="">Select your or shared food</option>
                   {ownFood.map((i) => (
                     <option key={i.id} value={i.id}>

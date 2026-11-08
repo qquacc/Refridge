@@ -10,10 +10,23 @@ async function suggestions(name) {
   suggestionCache.set(key, matches);
   return matches;
 }
-export async function enrichFoodPredictions(analysis) {
+export async function enrichFoodPredictions(analysis, inventory = []) {
   for (const change of analysis.changes || []) {
     if (!change || typeof change.foodName !== "string" || !change.foodName.trim()) continue;
     change.foodName = change.foodName.trim().slice(0, 80);
+    if (change.direction === "out") {
+      const known = inventory.find((i) => i.id === change.inventoryItemId);
+      if (known) {
+        change.foodName = known.name;
+        change.foodId = known.cnfId || null;
+        if (change.wholeItem) change.grams = known.grams;
+      }
+      change.ingredients = [];
+      delete change.nutritionSuggestions;
+      delete change.nutritionReferences;
+      delete change.draftFood;
+      continue;
+    }
     change.nutritionSuggestions = (await suggestions(change.foodName)).slice(0, 3)
       .map(({ cnfId, name }) => ({ cnfId, name }));
     change.ingredients = (Array.isArray(change.ingredients) ? change.ingredients : [])
@@ -39,7 +52,7 @@ export async function enrichFoodPredictions(analysis) {
 export async function confirmedPredictedFood(event, input) {
   await loadNutrition();
   const prediction = event.analysis?.raw?.changes?.[input.prediction.index];
-  if (!prediction?.foodName) throw Error("This food prediction is no longer available. Refresh and review the event.");
+  if (!prediction?.foodName || prediction.direction === "out") throw Error("This food prediction is no longer available. Refresh and review the event.");
   const ingredients = input.prediction.ingredients.map((i) => ({
     name: i.name, estimatedPercent: i.estimatedPercent,
     reference: i.cnfId ? canadianFood(i.cnfId) : null,

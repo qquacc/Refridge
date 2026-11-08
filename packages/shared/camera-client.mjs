@@ -27,16 +27,19 @@ export async function cameraApi(
     body: body ? (raw ? body : JSON.stringify(body)) : undefined,
     signal,
     cache: "no-store",
+    credentials: "include",
   });
   if (!response.ok) {
     let message;
     try {
       message = (await response.json()).error;
     } catch {}
-    throw Error(
+    const error = Error(
       message ||
         "Camera server unavailable. Start the shared backend or check its URL.",
     );
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -45,6 +48,7 @@ export async function imageBlob(id, token, signal) {
     headers: { Authorization: "Bearer " + token },
     signal,
     cache: "no-store",
+    credentials: "include",
   });
   if (!r.ok) throw Error("Image unavailable.");
   return r.blob();

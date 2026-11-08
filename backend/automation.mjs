@@ -133,7 +133,7 @@ export function createAutomation({
         context: s.context,
       });
       await loadNutrition();
-      await enrichFoodPredictions(analysis);
+      await enrichFoodPredictions(analysis, s.context.inventory);
       const plan = buildAutomaticPlan(
         s.context,
         analysis,

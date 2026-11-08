@@ -90,7 +90,7 @@ Identity uses a random device token stored in your main browser, with only its h
 | `dist/` | Production frontends: main at `/`, companion at `/camera/` |
 | `docs/` | Deployment, API, source attribution, validation and requirement mapping |
 
-Server data lives in `DATA_DIR` (default `.fridgeful-data/`). Use a persistent disk and **one server process/instance**. The backend persists sessions, private photos, connected-fridge context, invitations, shared awards, and trades. The main browser persists its profile, diary, usual-stock rules, grocery history, plans and processed-event IDs. Export a backup in settings.
+Server data lives in `DATA_DIR` (default `.fridgeful-data/`). Use a persistent disk and **one server process/instance**. The backend persists sessions, private photos, connected-fridge context, invitations, shared awards, and trades. Signed-in accounts save their profile, diary, inventory, usual-stock rules, grocery history, plans, and processed-event IDs to the backend. Browser backups are scoped by account ID. Export a backup in settings.
 
 A static deployment of `dist/` includes both interfaces but does **not** run the backend. Pairing, automatic recognition, connected friends and trades need the Node server. Live store sales/prices, medical diagnoses, hardware testing, email recovery, and native background camera capture are not provided.
 
@@ -117,3 +117,11 @@ Existing browser storage keys, the `.fridgeful-data/` directory, and the `fridge
 Camera recognition now predicts common dish names and likely ingredient proportions without asking Gemini to choose nutrition IDs. The server searches CNF locally for suggested dish references. Ingredient breakdowns and visual quantities are estimates shown for review, not verified recipes; mixed dishes do not automatically change stock. Before/after views are retained, and container reference images are omitted from this lightweight prediction request.
 
 Predicted dishes now open an editable review form with weight, owner, container, suggested expiry date, ingredient shares, and a nutrition preview. Choose a similar CNF dish or calculate a weighted ingredient mixture after matching all ingredients and totaling 100%. Confirm once to add one dish with its ingredient metadata to the fridge. The server reconstructs nutrition from database references; it does not trust client-supplied nutrient values. Unavailable nutrients stay unknown. Existing saved predictions are upgraded locally without another Gemini call. Confirmed predicted dishes replay safely after a reload and repeated submissions cannot add duplicate inventory.
+
+## Accounts and first sign-in
+
+The home page offers username/password sign-up and login. Usernames are case-insensitive (3–24 letters, numbers, or underscores); passwords are 10–128 characters. Each account has its own saved application state, and its connected camera session controls access to private camera photos. Log out from the sidebar; the save status shows when your latest changes reach the database.
+
+When upgrading, sign up **in the browser and origin where your existing fridge is saved** and explicitly select **Import this browser’s existing fridge and camera pairing**. The old owner token proves camera-session ownership, and a camera session cannot be claimed by a second account. New accounts otherwise start with empty stock. Keep the same MongoDB database and database name on Vercel so existing sessions and photos remain available. Camera phones stay on the pairing flow and do not need the account password.
+
+Passwords use individually salted scrypt hashes; only hashes of random seven-day login tokens are stored, with HttpOnly, SameSite=Strict cookies (Secure on HTTPS/Vercel). Login attempts are throttled in persistent storage. Account writes check their revision to prevent another device silently overwriting newer changes. Conflicts keep a local backup and require reloading the latest cloud state. Username/password recovery and email verification are not included in this simple account flow.

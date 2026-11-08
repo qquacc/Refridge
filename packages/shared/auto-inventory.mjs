@@ -60,12 +60,17 @@ export function buildAutomaticPlan(context, analysis, eventId, lookup) {
       review.push("Food or movement needs review.");
       continue;
     }
-    if (c.foodName && (c.ingredients?.length || !c.foodId)) {
+    if (c.direction === "in" && c.foodName && (c.ingredients?.length || !c.foodId)) {
       review.push(`Prediction: ${c.foodName}. Confirm the dish, estimated ingredients, and amount before adding it.`);
       continue;
     }
     const known = context.inventory.find((i) => i.id === c.inventoryItemId);
-    const reference = lookup(String(c.foodId));
+    if (c.direction === "out" && !known) {
+      review.push("Food came out. Select the tracked item and amount removed.");
+      continue;
+    }
+    // Previously saved dishes can be removed using their stored nutrition, even without a single CNF ID.
+    const reference = c.direction === "out" && known ? known : lookup(String(c.foodId));
     if (!reference) {
       review.push("No valid Canadian food reference was matched.");
       continue;

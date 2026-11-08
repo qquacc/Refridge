@@ -419,7 +419,7 @@ test("fast analysis uses dish-first context and low thinking without dropping ca
 });
 
 test("dish predictions provide ingredients and local nutrition suggestions without mutating stock", async (t) => {
-  const prediction = { ...analysis, changes: [{ ...analysis.changes[0], foodId: null, foodName: "Pizza", ingredients: [{ name: "crust", estimatedPercent: 60 }, { name: "cheese", estimatedPercent: 25 }, { name: "tomato sauce", estimatedPercent: 15 }] }] };
+  const prediction = { ...analysis, changes: [{ ...analysis.changes[0], foodId: null, direction: "in", foodName: "Pizza", ingredients: [{ name: "crust", estimatedPercent: 60 }, { name: "cheese", estimatedPercent: 25 }, { name: "tomato sauce", estimatedPercent: 15 }] }] };
   const { x, o, a, b } = await enabled(t, async () => structuredClone(prediction));
   await capture(x, o, [a, b]);
   const event = await capture(x, o, [a, b]);

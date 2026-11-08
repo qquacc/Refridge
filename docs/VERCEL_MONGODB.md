@@ -62,13 +62,13 @@ Vercel provides HTTPS, so no Cloudflare installation or local Mac server is need
 
 MongoDB stores **server-side** owner/camera sessions, paired devices, captures, private JPEGs, connected-fridge inventory/container context, friend connections, trades, shared awards and analysis leases. JPEGs are separate binary documents, each capped at 1 MiB, and are read only after owner authorization. No GridFS is needed at this size.
 
-The existing personal profile/diary, grocery history, local plans and processed-event IDs remain in the main browser as before. This change does not add email/password accounts or full cross-device account recovery. Creating a new empty Atlas database does not import your old local disk or browser data; re-pair the phones at the deployed origin and add/sync the starting inventory there.
+Username/password accounts now persist personal profile/diary, fridge stock, grocery history, plans, and processed-event IDs per account. Camera sessions reference their owning account, and owner requests require that account’s valid login cookie. Camera phones retain their separate paired-device tokens. On sign-up, an explicit import option can attach the existing browser state and camera session using proof of its owner token. Keep the same database to retain those photos; a new empty database cannot import old server data automatically.
 
-For a deliberately small migration, server metadata uses one transactional document, capped at 14 MiB, plus a separate photo collection. Existing session/event limits remain. This is suitable for the prototype; a larger release should split metadata into per-session/per-event collections and add global rate limiting. Current request-rate counters are instance-local.
+For a deliberately small migration, server metadata uses one transactional document, capped at 14 MiB, plus a separate photo collection. Existing session/event limits remain. This is suitable for the prototype; a larger release should split metadata into per-session/per-event collections and add global rate limiting. General API request-rate counters are instance-local; account login/signup throttles are persisted across instances. Accounts and their snapshots currently share the transactional state document; a larger release should also move these to indexed per-account documents.
 
 ## Background processing
 
-Analysis promises are registered with Vercel `waitUntil`, including database writes and lease cleanup. A persisted per-session lease prevents concurrent function instances from analysing the same fridge simultaneously. Camera heartbeats and main-app polling start queued events; stale processing can resume after its 90-second lease expires. There is no process timer/daemon dependency and no separate queue service to configure.
+Analysis promises are registered with Vercel `waitUntil`, including database writes and lease cleanup. A persisted per-session lease prevents concurrent function instances from analysing the same fridge simultaneously. Camera heartbeats and main-app polling start queued events; stale processing can resume after its 270-second lease expires. There is no process timer/daemon dependency and no separate queue service to configure.
 
 Provider calls time out after 45 seconds to leave time for a database commit within the function budget. A crash or timeout can leave work for a later poll; retrying a provider request can incur another provider charge. Stock commits remain idempotent and use current-quantity checks. The app needs active camera/main requests to resume queued jobs; no scheduler runs when every app is closed.
 
@@ -81,3 +81,7 @@ Run `npm ci`, `npm test`, `npm run build`. Mongo adapter tests use a transaction
 Official references: https://www.mongodb.com/docs/drivers/node/current/crud/transactions/ ; https://vercel.com/docs/functions/runtimes/node-js ; https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package ; https://vercel.com/docs/project-configuration/vercel-json .
 
 Image analysis allows up to 240 seconds for Gemini, with a 270-second database lease and a 300-second Vercel function limit. Enable Fluid compute in Vercel to support this function duration. Failed or timed-out events remain available for manual review or explicit retry.
+
+## Account deployment
+
+Deploy frontend and API on the same HTTPS Vercel origin. No new service or authentication environment secret is required: random session tokens and scrypt salts are generated server-side. Keep `MONGODB_URI` and `MONGODB_DB` unchanged. Accounts, password hashes, login-token hashes, and their separate application snapshots live in `application_state`; `camera_images` stays separate and is read only after camera-session ownership authorization. Seven-day login cookies are HttpOnly, Secure on Vercel, and SameSite=Strict. Password reset/email verification are not implemented.
