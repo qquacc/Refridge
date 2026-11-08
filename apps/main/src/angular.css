@@ -1026,14 +1026,15 @@ button:not(:disabled):hover,
 .settings-import p { font-size: 12px; line-height: 1.6; color: #62705d; }
 
 /* The homepage mounts only after this welcome has completely faded. */
-.welcome-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); padding: 24px; z-index: 300; animation: welcome-splash-out 2.25s ease-in-out both; }
-.welcome-splash-content { text-align: center; animation: welcome-brand-in .8s ease-out both; }
+.welcome-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); padding: 24px; z-index: 300; animation: welcome-splash-out 2.55s ease-in-out both; }
+.welcome-splash-content { text-align: center; animation: welcome-brand-in .8s ease-out both, welcome-content-out .62s ease-in-out 1.78s forwards; }
 .welcome-splash-brand { display: flex; align-items: center; justify-content: center; gap: 16px; color: #243e31; font-size: clamp(42px, 8vw, 68px); font-weight: 800; letter-spacing: -2.5px; }
 .welcome-splash-brand img { width: clamp(62px, 12vw, 88px); height: auto; }
 .welcome-splash-dot { color: #91ad72; }
 .welcome-splash-content p { margin: 20px 0 0; color: #6a7764; font-size: 14px; }
 @keyframes welcome-brand-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes welcome-splash-out { 0%, 79% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes welcome-content-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes welcome-splash-out { 0%, 70% { background: var(--paper); } 94%, 100% { background: #fff; } }
 @media (prefers-reduced-motion: reduce) { .welcome-splash, .welcome-splash-content { animation: none; } }
 
 .weight-notification { position: relative; overflow: hidden; padding-bottom: 14px; flex-wrap: nowrap; gap: 12px; }
@@ -1110,3 +1111,13 @@ button:not(:disabled):hover,
 .repeat-onboarding { margin-top: 8px; margin-bottom: 16px; padding: 12px 18px; background: #e6eddc; font-weight: 650; }
 
 .welcome-splash-content .welcome-splash-intro { margin: 0 0 18px; font-size: 16px; font-weight: 500; color: #62725d; letter-spacing: 1px; }
+
+/* Comfortable spacing for camera setup and tracking choices. */
+.scan-page .feature-panel > p { margin-top: 14px; margin-bottom: 18px; line-height: 1.65; }
+.scan-page .feature-form { gap: 18px; margin-top: 20px; }
+.scan-page .field { gap: 9px; }
+.scan-page .button-row { gap: 12px; row-gap: 14px; margin-top: 18px; margin-bottom: 18px; }
+.scan-page .automatic-tracking-panel .inline-toggle { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; line-height: 1.6; }
+.scan-page .automatic-tracking-panel .inline-toggle input { margin: 3px 0 0; }
+.scan-page .automatic-tracking-panel .feature-form > .btn { justify-self: start; margin-top: 4px; }
+.scan-page .camera-device-list > div { padding-top: 16px; padding-bottom: 16px; }

@@ -160,3 +160,13 @@ test('legacy membership dates are backfilled once on login or existing-session r
   await a.request('/api/auth/logout',{body:{}});
   assert.equal((await a.request('/api/auth/login',{body:{username:'legacy_date',password}})).data.account.createdAt,login.data.account.createdAt);
 });
+
+test('one authenticated refresh backfills every missing Mongo membership date and preserves known dates',async(t)=>{
+ const fake=fakeMongo(),store=await new MongoStore({client:fake.client()}).initialize();const x=await setup(t,{store,images:store.images}),a=await client(x);
+ const signup=await a.request('/api/auth/signup',{body:{username:'bulk_member',password}}),id=signup.data.account.id;
+ await store.mutate((s)=>{s.accounts['old-a']={id:'old-a',username:'old_a'};s.accounts['old-b']={id:'old-b',username:'old_b',createdAt:null};});
+ const timestamp=x.getTime();const response=await a.request('/api/auth/me');assert.equal(response.status,200);
+ const fresh=await new MongoStore({client:fake.client()}).initialize(),stored=await fresh.read();
+ assert.equal(stored.accounts['old-a'].createdAt,timestamp);assert.equal(stored.accounts['old-b'].createdAt,timestamp);assert.equal(stored.accounts[id].createdAt,signup.data.account.createdAt);
+ x.setTime(timestamp+86400000);await a.request('/api/auth/me');assert.equal((await fresh.read()).accounts['old-a'].createdAt,timestamp);
+});

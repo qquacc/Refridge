@@ -17,6 +17,13 @@ function cookie(req, token, expires = LIFETIME / 1000) {
   return `${COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${expires}${secure ? "; Secure" : ""}`;
 }
 const hasCreatedAt = (account) => (typeof account.createdAt === "number" && Number.isFinite(account.createdAt) && account.createdAt > 0) || (typeof account.createdAt === "string" && account.createdAt.trim() !== "" && Number.isFinite(Date.parse(account.createdAt)));
+export function backfillMembershipDates(state, timestamp = Date.now()) {
+  let updated = 0;
+  for (const account of Object.values(state.accounts || {})) {
+    if (!hasCreatedAt(account)) { account.createdAt = timestamp; updated++; }
+  }
+  return { total: Object.keys(state.accounts || {}).length, updated, missing: Object.values(state.accounts || {}).filter((a) => !hasCreatedAt(a)).length };
+}
 function view(state, account) {
   const camera = Object.values(state.sessions).find((s) => s.accountId === account.id);
   return { account: { id: account.id, username: account.username, createdAt: account.createdAt ?? null }, appState: account.appState || null, revision: account.revision || 0,
@@ -55,10 +62,10 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
       if (username === "sample") {
         const snapshot = await store.read();
         const demo = Object.values(snapshot.accounts || {}).find((a) => a.username === "sample");
-        if (demo?.appState?.sampleAccount && (demo.appState.sampleDataVersion || 0) < 2) {
+        if (demo?.appState?.sampleAccount && (demo.appState.sampleDataVersion || 0) < 3) {
           await store.mutate((state) => {
             const current = state.accounts[demo.id];
-            if ((current.appState.sampleDataVersion || 0) < 2) { current.appState = enrichSampleState(current.appState, now()); current.revision = (current.revision || 0) + 1; }
+            if ((current.appState.sampleDataVersion || 0) < 3) { current.appState = enrichSampleState(current.appState, now()); current.revision = (current.revision || 0) + 1; }
           });
         }
         if (!Object.values(snapshot.accounts || {}).some((a) => a.username === "sample")) {
@@ -88,7 +95,7 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
           state.accounts[account.id] = account;
         }
         for (const [k, session] of Object.entries(state.accountSessions)) if (session.expiresAt <= now()) delete state.accountSessions[k];
-        if (!hasCreatedAt(account)) account.createdAt = now();
+        backfillMembershipDates(state, now());
         // Bound active sessions for an account; logging in rotates this browser's token.
         const active = Object.entries(state.accountSessions).filter(([, s]) => s.accountId === account.id).sort((a, b) => a[1].expiresAt - b[1].expiresAt);
         for (const [k] of active.slice(0, Math.max(0, active.length - 9))) delete state.accountSessions[k];
@@ -107,14 +114,14 @@ export function createAccountRoutes({ store, now = Date.now, jsonBody }) {
     const state = await store.read(), account = signedInAccount(state, req, now());
     if (!account) fail(401, "Log in to your Refridge account.");
     if (path === "/api/auth/me" && req.method === "GET") {
-      if (account.appState?.sampleAccount && (account.appState.sampleDataVersion || 0) < 2) {
-        const result = await store.mutate((current) => { const saved = current.accounts[account.id]; if ((saved.appState.sampleDataVersion || 0) < 2) { saved.appState = enrichSampleState(saved.appState, now()); saved.revision = (saved.revision || 0) + 1; } if (!hasCreatedAt(saved)) saved.createdAt = now(); return view(current, saved); });
+      if (account.appState?.sampleAccount && (account.appState.sampleDataVersion || 0) < 3) {
+        const result = await store.mutate((current) => { const saved = current.accounts[account.id]; if ((saved.appState.sampleDataVersion || 0) < 3) { saved.appState = enrichSampleState(saved.appState, now()); saved.revision = (saved.revision || 0) + 1; } backfillMembershipDates(current, now()); return view(current, saved); });
         send(result); return true;
       }
-      if (!hasCreatedAt(account)) {
+      if (Object.values(state.accounts || {}).some((a) => !hasCreatedAt(a))) {
         const result = await store.mutate((current) => {
           const saved = current.accounts[account.id];
-          if (!hasCreatedAt(saved)) saved.createdAt = now();
+          backfillMembershipDates(current, now());
           return view(current, saved);
         });
         send(result);

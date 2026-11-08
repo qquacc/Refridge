@@ -8,7 +8,7 @@ export function sampleState(now = Date.now()) {
   state.household = "Nathaniel's Kitchen";
   state.onboarding = { completed: true, version: 2 };
   state.sampleAccount = true;
-  state.sampleDataVersion = 2;
+  state.sampleDataVersion = 3;
   state.containers = [];
   state.socialSettings = { enabled: false };
   state.members = [{ id: 'me', name: 'Nathaniel' }, { id: 'allen', name: 'Allen', demo: true }, { id: 'ava', name: 'Ava', demo: true }];
@@ -44,7 +44,7 @@ export function sampleState(now = Date.now()) {
     { id: 'sample-chat-allen-1', fromId: 'allen', toId: 'me', text: 'Hey Nathaniel! I have extra chickpeas. Want to trade for some spinach?', kind: 'text', createdAt: stamp(180) },
     { id: 'sample-chat-allen-2', fromId: 'me', toId: 'allen', text: 'Sounds good! We could make grain bowls together this week.', kind: 'text', createdAt: stamp(175) },
     { id: 'sample-chat-allen-3', fromId: 'me', toId: 'allen', text: 'Meal collab · What should we cook together?', kind: 'system', prompt: 'meal', createdAt: stamp(170) },
-    { id: 'sample-chat-allen-4', fromId: 'allen', toId: 'me', text: 'Thursday works for me. I can bring the chickpeas and rice.', kind: 'text', createdAt: stamp(165) },
+    { id: 'sample-chat-allen-4', fromId: 'allen', toId: 'me', text: 'Thursday works for me. I can bring the chickpeas and rice. Dominic said he’ll bring his famous hot sauce!', kind: 'text', createdAt: stamp(165) },
     { id: 'sample-chat-ava-1', fromId: 'ava', toId: 'me', text: 'I saved some vegetables from going to waste today. How is your week going?', kind: 'text', createdAt: stamp(90) },
     { id: 'sample-chat-ava-2', fromId: 'me', toId: 'ava', text: 'Nice! I used up my spinach at lunch. Ready for a friendly challenge?', kind: 'text', createdAt: stamp(85) },
     { id: 'sample-chat-ava-3', fromId: 'ava', toId: 'me', text: 'Friendly competition · Ready for a food-saving challenge?', kind: 'system', prompt: 'competition', createdAt: stamp(80) },
@@ -56,7 +56,12 @@ export function sampleState(now = Date.now()) {
 }
 
 export function enrichSampleState(current, now = Date.now()) {
-  if (!current?.sampleAccount || current.sampleDataVersion >= 2) return current;
+  if (!current?.sampleAccount || current.sampleDataVersion >= 3) return current;
+  if (current.sampleDataVersion >= 2) {
+    const seeded = sampleState(now);
+    const cameo = seeded.demoMessages.find((m) => m.id === 'sample-chat-allen-4');
+    return { ...current, sampleDataVersion: 3, demoMessages: [...(current.demoMessages || []).filter((m) => m.id !== cameo.id), cameo].sort((a, b) => a.createdAt.localeCompare(b.createdAt)) };
+  }
   const seeded = sampleState(now);
   const personal = (entries) => (entries || []).filter((e) => !String(e.id || '').startsWith('sample-'));
   return refreshDerived({ ...current, ...seeded,

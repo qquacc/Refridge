@@ -591,7 +591,7 @@ export default function CamerasPage({ state, setState, notify }) {
     );
   }
   return (
-    <div className="feature-page">
+    <div className="feature-page scan-page">
       <Banner>
         Give each camera a clear view of your food and keep both phones open.
         Review suggested changes here before adding or removing anything from your fridge.
@@ -637,18 +637,19 @@ export default function CamerasPage({ state, setState, notify }) {
       ) : (
         <>
           <Panel
+            className="automatic-tracking-panel"
             title="Automatic food tracking"
-            subtitle="Compare before/after views, match Canadian food references, and update stock after conservative checks."
+            subtitle="Spot food coming and going, then review changes to your fridge."
           >
             <p className="body-copy">
               {visionStatus?.keyConfigured
-                ? "Vision provider configured · " + visionStatus.model
-                : "Add GEMINI_API_KEY to the included Node server’s .env and restart it. No image analysis is available until a key is configured."}
+                ? "Photo recognition is ready."
+                : "Photo recognition isn’t set up yet. You can still add and update food manually."}
             </p>
             <p className="form-hint">
               Check the food, amount, and owner before saving. You can correct any estimate.
             </p>
-            <p>Top Camera identifies the food only. Side Camera determines its volume and amount only. Pair one of each role. Cameras with older names must be removed and paired again; then save a new reference scene.</p>
+            <p>Use one Top Camera to identify food and one Side Camera to estimate the amount. Keep both phones open with a clear view.</p>
             {!session?.automation?.enabled ? (
               <div className="feature-form">
                 <label className="inline-toggle">
@@ -657,8 +658,7 @@ export default function CamerasPage({ state, setState, notify }) {
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
                   />
-                  Send captured fridge photos to
-                  the configured vision provider for analysis.
+                  Allow Gemini to analyze photos from my fridge cameras.
                 </label>
                 <label className="inline-toggle">
                   <input
@@ -666,8 +666,7 @@ export default function CamerasPage({ state, setState, notify }) {
                     checked={logRemovals}
                     onChange={(e) => setLogRemovals(e.target.checked)}
                   />
-                  Also log my outgoing food as estimated intake. I understand
-                  removal may mean moving or discarding food.
+                  Automatically log removed food as eaten. Leave this off if food may be moved or thrown away.
                 </label>
                 <button
                   className="btn primary"
