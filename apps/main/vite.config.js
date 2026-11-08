@@ -1,6 +1,20 @@
 import { defineConfig } from "vite";
 export default defineConfig({
   envDir: "../..",
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/refridge-app-[hash].js",
+        chunkFileNames: "assets/refridge-[name]-[hash].js",
+        assetFileNames: (asset) => {
+          const names = asset.names || [asset.name || ""];
+          return names.some((name) => name.endsWith(".css"))
+            ? "assets/refridge-styles-[hash][extname]"
+            : "assets/refridge-[name]-[hash][extname]";
+        },
+      },
+    },
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: ["terminal.local"],

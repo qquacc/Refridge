@@ -1,3 +1,27 @@
+# Dependencies and package-manager caches
 node_modules/
+.npm/
+.pnpm-store/
+
+# Generated build output and tool caches
+dist/
+.vite/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Local account/session data and camera uploads
+.fridgeful-data/
+
+# Private environment files; keep the shareable configuration template
 .env
-.env.example
+.env.*
+!.env.example
+
+# Local deployment metadata
+.vercel/
+
+# Logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db

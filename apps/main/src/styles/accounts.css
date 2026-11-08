@@ -27,3 +27,17 @@
 .account-footer { text-align: center; padding: 20px; }
 .account-save-status { display: block; padding: 5px 12px; font-size: 11px; line-height: 1.5; color: #687363; }
 @media (max-width: 760px) { .account-header > span { display: none; } .account-layout { grid-template-columns: 1fr; margin-top: 42px; gap: 28px; } .account-intro h1 { letter-spacing: -2px; } .account-benefits { display: none; } }
+
+.account-install { margin-bottom: 26px; background: #edf2e6; border-radius: 12px !important; padding: 15px; min-width: 0; }
+.account-install > summary { display: flex; align-items: center; gap: 11px; cursor: pointer; font-size: 14px; font-weight: 650; list-style: none; }
+.account-install > summary::-webkit-details-marker { display: none; }
+.account-install > summary > svg { flex-shrink: 0; }
+.account-install > summary::after { content: "+"; margin-left: auto; font-size: 22px; font-weight: 400; }
+.account-install[open] > summary::after { content: "−"; }
+.account-card .account-install summary small { display: block; margin: 5px 0 0; font-size: 11px; font-weight: 400; }
+.account-install-content { padding-top: 12px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.account-install-content h3 { font-size: 14px; margin: 18px 0 8px; }
+.account-install-content ol { margin: 0; padding-left: 21px; }
+.account-install-content li { padding: 4px 0; }
+.account-install-sources { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; font-size: 11px; }
+@media (max-width: 760px) { .account-install { margin-bottom: 22px; padding: 14px; } .account-card { min-width: 0; } .account-card input:not([type="checkbox"]) { min-width: 0; font-size: 16px; } }

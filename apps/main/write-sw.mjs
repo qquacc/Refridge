@@ -11,6 +11,9 @@ const files = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
+  "/fridge-touch-v2.png",
+  "/fridge-icon-192-v2.png",
+  "/fridge-icon-512-v2.png",
   ...assets.map((a) => "/assets/" + a),
 ];
 // Include public images as well as bundles so logo-only updates invalidate offline caches.

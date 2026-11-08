@@ -9,6 +9,9 @@ const files = [
   "/camera/icon-192.png",
   "/camera/icon-512.png",
   "/camera/apple-touch-icon.png",
+  "/camera/fridge-touch-v2.png",
+  "/camera/fridge-icon-192-v2.png",
+  "/camera/fridge-icon-512-v2.png",
   ...(await readdir("dist/assets")).map((n) => "/camera/assets/" + n),
 ];
 // Include public images as well as bundles so logo-only updates invalidate offline caches.

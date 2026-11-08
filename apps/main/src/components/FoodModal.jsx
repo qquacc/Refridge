@@ -39,7 +39,7 @@ export default function FoodModal({
   async function recognizeMeal() {
     if (!photo || recognizing) return;
     const controller = new AbortController(); recognition.current = controller;
-    const timer = setTimeout(() => controller.abort(), 35000);
+    const timer = setTimeout(() => controller.abort(), 65000);
     setRecognizing(true); setError("");
     try {
       const result = await cameraApi("/api/meals/recognize", { method: "POST", body: { jpegBase64: photo.split(",")[1] }, signal: controller.signal });

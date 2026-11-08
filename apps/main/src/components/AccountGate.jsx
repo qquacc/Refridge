@@ -1,3 +1,4 @@
+import Icon from "./Icon.jsx";
 import React, { useEffect, useState } from "react";
 import { cameraApi, readSaved, saveDevice } from "../../../../packages/shared/camera-client.mjs";
 import App from "../App.jsx";
@@ -55,6 +56,18 @@ export default function AccountGate({ ready = true }) {
         <div className="account-benefits"><p><strong>Keep track</strong><span>Your food, quantities, and nutrition in one place.</span></p><p><strong>Bring your cameras</strong><span>Connect a top and side view to your own fridge.</span></p><p><strong>Pick up anywhere</strong><span>Log in to restore your saved kitchen.</span></p></div>
       </section>
       <section className="account-card" aria-labelledby="account-title">
+        <details className="account-install">
+          <summary><Icon name="download" size={20} /><span>Install Refridge on your phone<small>View download instructions</small></span></summary>
+          <div className="account-install-content">
+            <p>Add Refridge to your Home Screen for quick access. You can do this before signing in.</p>
+            <h3>iPhone or iPad</h3>
+            <ol><li>Open this website in Safari.</li><li>Tap Share, then Add to Home Screen.</li><li>Keep Open as Web App on if shown, then tap Add.</li></ol>
+            <h3>Android</h3>
+            <ol><li>Open this website in Chrome.</li><li>Open the three-dot menu.</li><li>Choose Add to Home screen or Install app, then follow the prompts.</li></ol>
+            <p className="account-install-help">Already installed? Open Refridge from its Home Screen icon.</p>
+            <div className="account-install-sources"><a href="https://support.apple.com/guide/iphone/iphea86e5236/ios" target="_blank" rel="noreferrer">Apple instructions ↗</a><a href="https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid" target="_blank" rel="noreferrer">Android instructions ↗</a></div>
+          </div>
+        </details>
         {loading ? <><h2 id="account-title">Opening your kitchen…</h2><p role="status">Checking your sign-in.</p></> : <>
           <div className="account-tabs"><button type="button" aria-pressed={mode === "signup"} onClick={() => { setMode("signup"); setError(""); }}>Sign up</button><button type="button" aria-pressed={mode === "login"} onClick={() => { setMode("login"); setError(""); }}>Log in</button></div>
           <h2 id="account-title">{mode === "signup" ? "Make yourself at home." : "Welcome back."}</h2>

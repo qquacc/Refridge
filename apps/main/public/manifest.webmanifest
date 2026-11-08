@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "Refridge — Your everyday food companion",
+  "name": "Refridge \u2014 Your everyday food companion",
   "short_name": "Refridge",
   "description": "Keep track of your fridge, find your next meal, and shop a little smarter.",
   "start_url": "/",
@@ -11,13 +11,13 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/fridge-icon-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/fridge-icon-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
