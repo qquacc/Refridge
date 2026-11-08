@@ -1,5 +1,6 @@
 import React from "react";
 const paths = {
+  wellbeing: "M3 12h4l3-7 4 14 3-7h4",
   cameras: "M2 6h7l2-3h4l2 3h5v15H2z M8 13a4 4 0 1 0 8 0 4 4 0 0 0-8 0 M18 9h1",
   profile: "M9 3h6l3 5-3 5H9L6 8z M3 22v-3l6-3h6l6 3v3z",
   containers: "M3 7 12 2l9 5v12l-9 4-9-4z M3 7l9 5 9-5 M12 12v11 M7 5l10 5",

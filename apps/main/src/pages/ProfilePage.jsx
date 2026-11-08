@@ -47,8 +47,9 @@ export default function ProfilePage({ state, setState, notify }) {
     <div className="feature-page">
       <Panel
         title="Your profile"
-        subtitle="Preferences stay on this device. Camera images use the paired server."
+        subtitle="Your profile is saved privately to your account. Update these details whenever you like."
       >
+        <button type="button" className="text-btn" onClick={() => setState((s) => ({ ...s, onboarding: { completed: false, step: 0 } }))}>Open guided setup →</button>
         <ErrorMessage error={error} />
         <form className="feature-form" onSubmit={save}>
           <div className="profile-photo-row">

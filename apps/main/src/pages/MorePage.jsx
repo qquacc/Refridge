@@ -2,6 +2,7 @@ import React from "react";
 import Icon from "../components/Icon.jsx";
 export const featureNav = [
   ["activity", "Nutrition"],
+  ["wellbeing", "Well-being & trends"],
   ["cameras", "Paired cameras"],
   ["containers", "Containers"],
   ["goals", "Food goals"],

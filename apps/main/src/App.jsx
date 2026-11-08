@@ -1,3 +1,6 @@
+import Onboarding from "./components/Onboarding.jsx";
+import WellbeingPage from "./pages/WellbeingPage.jsx";
+import "./styles/kitchen.css";
 import { useAccountSync, loadAccountSnapshot } from "./hooks/useAccountSync.jsx";
 import React, { useCallback, useEffect, useState } from "react";
 import { initialState, today, daysLeft, uid, totals } from "./data/food.mjs";
@@ -21,14 +24,14 @@ import ChallengesPage from "./pages/ChallengesPage.jsx";
 import WrappedPage from "./pages/WrappedPage.jsx";
 import MorePage, { featureNav } from "./pages/MorePage.jsx";
 const nav = [
-  ["home", "Overview"],
+  ["home", "Home"],
   ["fridge", "My fridge"],
   ["meals", "Meal plans"],
   ["list", "Groceries"],
   ...featureNav,
 ];
 const mobileNav = [
-  ["home", "Today"],
+  ["home", "Home"],
   ["fridge", "Fridge"],
   ["meals", "Meals"],
   ["list", "Groceries"],
@@ -36,8 +39,8 @@ const mobileNav = [
 ];
 const meta = {
   home: [
-    "Your kitchen, understood.",
-    "Plan your next meal from the food you already have.",
+    "Your fridge, at a glance.",
+    "A place for everything, and something good to make.",
   ],
   fridge: ["My fridge", "Food, ownership, and in-person exchanges."],
   meals: [
@@ -56,6 +59,7 @@ const meta = {
     "Two angles. One inventory.",
     "Connect camera phones and enable automatic food-change analysis.",
   ],
+  wellbeing: ["Well-being & trends", "Small check-ins and a longer view of your recorded habits."],
   profile: [
     "Your profile",
     "Personal details, dietary restrictions, and nutrition references.",
@@ -160,6 +164,7 @@ export default function App({ account, onLogout }) {
   const common = { state, setState, navigate, setModal, notify, addGroceries };
   const pages = {
     home: OverviewPage,
+    wellbeing: WellbeingPage,
     fridge: InventoryPage,
     meals: MealsPage,
     list: GroceryPage,
@@ -178,6 +183,8 @@ export default function App({ account, onLogout }) {
   ) : (
     (state.profile.name || "Y")[0]
   );
+  if (state.onboarding?.completed === false || (!state.onboarding && !state.profile.complete))
+    return <Onboarding state={state} setState={setState} saveStatus={cloud.status} error={cloud.error} />;
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">

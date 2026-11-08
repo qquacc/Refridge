@@ -125,3 +125,11 @@ The home page offers username/password sign-up and login. Usernames are case-ins
 When upgrading, sign up **in the browser and origin where your existing fridge is saved** and explicitly select **Import this browser’s existing fridge and camera pairing**. The old owner token proves camera-session ownership, and a camera session cannot be claimed by a second account. New accounts otherwise start with empty stock. Keep the same MongoDB database and database name on Vercel so existing sessions and photos remain available. Camera phones stay on the pairing flow and do not need the account password.
 
 Passwords use individually salted scrypt hashes; only hashes of random seven-day login tokens are stored, with HttpOnly, SameSite=Strict cookies (Secure on HTTPS/Vercel). Login attempts are throttled in persistent storage. Account writes check their revision to prevent another device silently overwriting newer changes. Conflicts keep a local backup and require reloading the latest cloud state. Username/password recovery and email verification are not included in this simple account flow.
+
+## Guided setup, fridge home, and well-being
+
+New or incomplete profiles open a six-question setup: name, age/date of birth, eating preferences, ingredients to avoid, activity, and priority. Optional questions can be skipped, setup can be deferred, and progress is saved per account. Existing completed profiles go straight to the fridge. Reopen setup from My profile.
+
+The home page groups all positive-stock items in the selected local fridge into condiments, prepared food, dairy/eggs/drinks, fruit, grains/plant proteins, vegetables, and meat/seafood. These shelves are a category organizer, not camera-derived physical positions. Dates and quantities remain editable through the food cards.
+
+Well-being & trends stores optional daily mood, energy, stress, sleep, and context notes privately in the account. One check-in per date can be edited. Charts cover 30, 90, or 365 days, and include recorded protein/fibre from the signed-in user's food diary. Unlogged days stay blank; known zeroes remain zero and partial nutrient data is labeled. These descriptive charts do not diagnose conditions or infer causes. Check-ins are not sent to Gemini or the friend feed.
